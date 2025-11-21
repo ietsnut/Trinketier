@@ -17,6 +17,11 @@ import com.badlogic.gdx.graphics.g3d.decals.CameraGroupStrategy;
 import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.crashinvaders.basisu.gdx.Ktx2TextureData;
+import com.badlogic.gdx.graphics.glutils.HdpiUtils;
+import com.badlogic.gdx.math.Intersector;
+import com.badlogic.gdx.math.Plane;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.math.collision.Ray;
 
 public class CoreLauncher extends ApplicationAdapter {
     private Camera camera;
@@ -55,7 +60,10 @@ public class CoreLauncher extends ApplicationAdapter {
         camera.update(delta);
         billboard.update(camera);
 
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+        HdpiUtils.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getHeight());
+        //Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getHeight());
+        System.out.println("width: " + Gdx.graphics.getWidth());
+        System.out.println("height: " + Gdx.graphics.getHeight());
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 

@@ -2,18 +2,25 @@ package com.trinketier.lwjgl3;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
+import com.badlogic.gdx.graphics.glutils.HdpiMode;
 import com.trinketier.CoreLauncher;
+import org.lwjgl.system.MemoryStack;
+
+import java.nio.FloatBuffer;
+
+import static org.lwjgl.glfw.GLFW.glfwGetWindowContentScale;
 
 /** Launches the desktop (LWJGL3) application. */
 public class Lwjgl3Launcher {
     public static void main(String[] args) {
-        Lwjgl3ApplicationConfiguration.useGlfwAsync();
         if (StartupHelper.startNewJvmIfRequired()) return; // This handles macOS support and helps on Windows.
         createApplication();
     }
 
     private static Lwjgl3Application createApplication() {
-        return new Lwjgl3Application(new CoreLauncher(), getDefaultConfiguration());
+        Lwjgl3ApplicationConfiguration configuration = getDefaultConfiguration();
+        Lwjgl3Application application = new Lwjgl3Application(new CoreLauncher(), configuration);
+        return application;
     }
 
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {
@@ -30,6 +37,7 @@ public class Lwjgl3Launcher {
         //// You may also need to configure GPU drivers to fully disable Vsync; this can cause screen tearing.
 
         configuration.setWindowedMode(1280, 720);
+
         //// You can change these files; they are in lwjgl3/src/main/resources/ .
         //// They can also be loaded from the root of assets/ .
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");
@@ -40,6 +48,10 @@ public class Lwjgl3Launcher {
         //// You can choose to remove the following line and the mentioned dependency if you want; they
         //// are not intended for games that use GL30 (which is compatibility with OpenGL ES 3.0).
         configuration.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.ANGLE_GLES20, 0, 0);
+
+        configuration.setHdpiMode(HdpiMode.Pixels);
+        configuration.setDecorated(false);
+        configuration.setTransparentFramebuffer(true);
 
         return configuration;
     }
