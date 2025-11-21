@@ -7,9 +7,9 @@ buildscript {
     maven { url 'https://central.sonatype.com/repository/maven-snapshots/' }
   }
   dependencies {
-    classpath "com.android.tools.build:gradle:8.9.3"
-    classpath "io.freefair.gradle:lombok-plugin:8.14"
-
+    classpath 'com.android.tools.build:gradle:8.12.3'
+    classpath "io.freefair.gradle:lombok-plugin:9.1.0"
+    // classpath "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
   }
 }
 

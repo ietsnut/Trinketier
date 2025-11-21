@@ -5,7 +5,7 @@ import android.os.Bundle;
 
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.trinketier.Trinketier;
+import com.trinketier.CoreLauncher;
 
 /** Launches the Android application. */
 public class AndroidLauncher extends AndroidApplication {
@@ -15,6 +15,6 @@ public class AndroidLauncher extends AndroidApplication {
         AndroidApplicationConfiguration configuration = new AndroidApplicationConfiguration();
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         configuration.useImmersiveMode = true; // Recommended, but not required.
-        initialize(new Trinketier(), configuration);
+        initialize(new CoreLauncher(), configuration);
     }
 }
