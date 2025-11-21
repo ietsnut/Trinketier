@@ -1,5 +1,6 @@
 package com.trinketier;
 
+import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
@@ -12,6 +13,7 @@ import com.badlogic.gdx.math.collision.Ray;
 
 public class Camera implements InputProcessor {
     public PerspectiveCamera innerCam;
+    private final boolean isDesktop;
 
     private float pitch = 0;
     private float yaw = 0;
@@ -21,7 +23,7 @@ public class Camera implements InputProcessor {
     // Logic for Click-to-Walk
     private boolean isWalkingToTarget = false;
     private final Vector3 targetPosition = new Vector3();
-    private final Plane floorPlane = new Plane(Vector3.Y, 0); // Represents the floor at Y=0
+    private final Plane floorPlane = new Plane(Vector3.Y, 0);
     private final Vector3 intersection = new Vector3();
 
     // Logic for separating Drag vs Tap
@@ -39,6 +41,8 @@ public class Camera implements InputProcessor {
         innerCam.near = 0.1f;
         innerCam.far = 300f;
         innerCam.update();
+
+        isDesktop = Gdx.app.getType() == Application.ApplicationType.Desktop;
     }
 
     public void update(float deltaTime) {
@@ -59,7 +63,7 @@ public class Camera implements InputProcessor {
         float moveSpeed = 5.0f * deltaTime;
         movement.setZero();
 
-        // WASD Movement (Keyboard) overrides Click-to-Walk
+        // WASD Movement
         if (moveW || moveS || moveA || moveD) {
             isWalkingToTarget = false;
             if (moveW) {
@@ -79,14 +83,13 @@ public class Camera implements InputProcessor {
                 movement.add(tmp.nor().scl(moveSpeed));
             }
         } else if (isWalkingToTarget) {
-            // Walk towards the tap target
-            tmp.set(targetPosition).sub(innerCam.position).y = 0; // Ignore Y diff for direction
+            // Auto-walk to tap target
+            tmp.set(targetPosition).sub(innerCam.position).y = 0;
 
             float distance = tmp.len();
             if (distance < 0.1f) {
-                isWalkingToTarget = false; // Arrived
+                isWalkingToTarget = false;
             } else {
-                // Normalize and scale, but ensure we don't overshoot
                 float step = Math.min(moveSpeed, distance);
                 movement.add(tmp.nor().scl(step));
             }
@@ -94,6 +97,37 @@ public class Camera implements InputProcessor {
 
         innerCam.position.add(movement);
         innerCam.update();
+    }
+
+    private void rotateCamera(float deltaX, float deltaY) {
+        yaw += deltaX;
+        pitch += deltaY;
+        yaw = yaw % 360;
+        pitch = MathUtils.clamp(pitch, -89f, 89f);
+    }
+
+    @Override
+    public boolean mouseMoved(int screenX, int screenY) {
+        // Desktop: Look around when moving mouse (hover)
+        if (isDesktop) {
+            float deltaX = -Gdx.input.getDeltaX() * mouseSensitivity;
+            float deltaY = -Gdx.input.getDeltaY() * mouseSensitivity;
+            rotateCamera(deltaX, deltaY);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean touchDragged(int screenX, int screenY, int pointer) {
+        // Mobile: Drag to look
+        // Desktop: Drag to look (if holding button)
+        isDragging = true;
+
+        float deltaX = -Gdx.input.getDeltaX() * mouseSensitivity;
+        float deltaY = -Gdx.input.getDeltaY() * mouseSensitivity;
+        rotateCamera(deltaX, deltaY);
+
+        return true;
     }
 
     @Override
@@ -104,11 +138,15 @@ public class Camera implements InputProcessor {
 
     @Override
     public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-        // If we didn't drag, it's a tap (click to move)
+        // If Desktop, ignore "Tap to Walk" so you can shoot/click freely
+        if (isDesktop) {
+            return false;
+        }
+
+        // Mobile: If it was a Tap (not a drag), Walk
         if (!isDragging) {
             Ray ray = innerCam.getPickRay(screenX, screenY);
             if (Intersector.intersectRayPlane(ray, floorPlane, intersection)) {
-                // Adjust target so we walk to the point, but keep our eye height (1.7f)
                 targetPosition.set(intersection.x, 1.7f, intersection.z);
                 isWalkingToTarget = true;
             }
@@ -117,34 +155,20 @@ public class Camera implements InputProcessor {
     }
 
     @Override
-    public boolean touchDragged(int screenX, int screenY, int pointer) {
-        isDragging = true;
-
-        float deltaX = -Gdx.input.getDeltaX() * mouseSensitivity;
-        float deltaY = -Gdx.input.getDeltaY() * mouseSensitivity;
-
-        yaw += deltaX;
-        pitch += deltaY;
-
-        yaw = yaw % 360;
-        pitch = MathUtils.clamp(pitch, -89f, 89f);
-
-        return true;
-    }
-
-    @Override public boolean mouseMoved(int screenX, int screenY) { return false; }
-    @Override public boolean keyDown(int keycode) {
+    public boolean keyDown(int keycode) {
         switch (keycode) {
             case Input.Keys.W: moveW = true; break;
             case Input.Keys.S: moveS = true; break;
             case Input.Keys.A: moveA = true; break;
             case Input.Keys.D: moveD = true; break;
             case Input.Keys.ESCAPE: Gdx.app.exit(); break;
+            case Input.Keys.TAB: Gdx.input.setCursorCatched(false); break;
         }
         return true;
     }
 
-    @Override public boolean keyUp(int keycode) {
+    @Override
+    public boolean keyUp(int keycode) {
         switch (keycode) {
             case Input.Keys.W: moveW = false; break;
             case Input.Keys.S: moveS = false; break;
