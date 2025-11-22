@@ -5,6 +5,8 @@ dependencies {
   api "com.badlogicgames.gdx:gdx:$gdxVersion"
   api "com.crashinvaders.basisu:basisu-gdx:$gdxBasisUniversalVersion"
   api "com.crashinvaders.basisu:basisu-wrapper:$gdxBasisUniversalVersion"
+  // https://mvnrepository.com/artifact/org.nanohttpd/nanohttpd
+  api "org.nanohttpd:nanohttpd:2.3.1"
   // api "com.badlogicgames.gdx:gdx-tools:$gdxVersion"
   annotationProcessor "org.projectlombok:lombok:$lombokVersion"
   compileOnly "org.projectlombok:lombok:$lombokVersion"

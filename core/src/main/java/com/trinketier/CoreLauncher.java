@@ -18,8 +18,13 @@ import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.crashinvaders.basisu.gdx.Ktx2TextureData;
 import com.badlogic.gdx.graphics.glutils.HdpiUtils;
+import fi.iki.elonen.NanoHTTPD;
+
+import java.io.IOException;
+import java.util.Map;
 
 public class CoreLauncher extends ApplicationAdapter {
+
     private Camera camera;
     private ModelBatch modelBatch;
     private DecalBatch decalBatch;
@@ -47,6 +52,11 @@ public class CoreLauncher extends ApplicationAdapter {
         image = new Texture(new Ktx2TextureData(Gdx.files.internal("sun.ktx2")));
         decalBatch = new DecalBatch(new CameraGroupStrategy(camera.getPerspective()));
         billboard = new Billboard(new TextureRegion(image), 0, 1.5f, -5f, 2f, 2f);
+        try {
+            new App();
+        } catch (IOException ioe) {
+            System.err.println("Couldn't start server:\n" + ioe);
+        }
     }
 
     @Override
@@ -58,8 +68,6 @@ public class CoreLauncher extends ApplicationAdapter {
 
         HdpiUtils.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getHeight());
         //Gdx.gl.glViewport(0, 0, Gdx.graphics.getBackBufferWidth(), Gdx.graphics.getHeight());
-        System.out.println("width: " + Gdx.graphics.getWidth());
-        System.out.println("height: " + Gdx.graphics.getHeight());
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 
