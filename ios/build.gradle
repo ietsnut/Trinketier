@@ -11,7 +11,7 @@ apply plugin: 'robovm'
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 ext {
-  mainClassName = "com.trinketier.IOSLauncher"
+  mainClassName = "com.ietsnut.trinketier.IOSLauncher"
 }
 
 launchIPhoneSimulator.dependsOn build

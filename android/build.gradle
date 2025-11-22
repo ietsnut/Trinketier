@@ -9,7 +9,7 @@ apply plugin: 'com.android.application'
 
 
 android {
-  namespace "com.trinketier"
+  namespace "com.ietsnut.trinketier"
   compileSdk 35
   sourceSets {
     main {
@@ -31,7 +31,7 @@ android {
 		}
   }
   defaultConfig {
-    applicationId 'com.trinketier'
+    applicationId 'com.ietsnut.trinketier'
     minSdkVersion 21
     targetSdkVersion 35
     versionCode 1
@@ -129,7 +129,7 @@ tasks.register('run', Exec) {
   }
 
   def adb = path + "/platform-tools/adb"
-  commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.trinketier/com.trinketier.android.AndroidLauncher'
+  commandLine "$adb", 'shell', 'am', 'start', '-n', 'com.ietsnut.trinketier/com.ietsnut.trinketier.android.AndroidLauncher'
 }
 
 eclipse.project.name = appName + "-android"

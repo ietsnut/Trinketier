@@ -1,4 +1,4 @@
-package com.trinketier.lwjgl3;
+package com.ietsnut.trinketier.lwjgl3;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener;

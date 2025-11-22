@@ -1,4 +1,4 @@
-package com.trinketier;
+package com.ietsnut.trinketier;
 
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.g3d.decals.Decal;

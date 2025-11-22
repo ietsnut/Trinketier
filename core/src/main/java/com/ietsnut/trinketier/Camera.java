@@ -1,4 +1,4 @@
-package com.trinketier;
+package com.ietsnut.trinketier;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.Gdx;

@@ -1,10 +1,10 @@
-package com.trinketier.lwjgl3;
+package com.ietsnut.trinketier.lwjgl3;
 
 import com.badlogic.gdx.Graphics;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.badlogic.gdx.graphics.glutils.HdpiMode;
-import com.trinketier.CoreLauncher;
+import com.ietsnut.trinketier.Trinketier;
 import org.lwjgl.system.MemoryStack;
 
 import java.nio.FloatBuffer;
@@ -19,7 +19,7 @@ public class Lwjgl3Launcher {
     }
 
     private static Lwjgl3Application createApplication() {
-        return new Lwjgl3Application(new CoreLauncher(), getDefaultConfiguration());
+        return new Lwjgl3Application(new Trinketier(), getDefaultConfiguration());
     }
 
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {

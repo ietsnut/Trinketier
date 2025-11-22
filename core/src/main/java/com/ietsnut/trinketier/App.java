@@ -1,4 +1,4 @@
-package com.trinketier;
+package com.ietsnut.trinketier;
 
 import fi.iki.elonen.NanoHTTPD;
 

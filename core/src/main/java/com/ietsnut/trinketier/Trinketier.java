@@ -1,4 +1,4 @@
-package com.trinketier;
+package com.ietsnut.trinketier;
 
 import com.badlogic.gdx.Application;
 import com.badlogic.gdx.ApplicationAdapter;
@@ -18,12 +18,10 @@ import com.badlogic.gdx.graphics.g3d.decals.DecalBatch;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.crashinvaders.basisu.gdx.Ktx2TextureData;
 import com.badlogic.gdx.graphics.glutils.HdpiUtils;
-import fi.iki.elonen.NanoHTTPD;
 
 import java.io.IOException;
-import java.util.Map;
 
-public class CoreLauncher extends ApplicationAdapter {
+public class Trinketier extends ApplicationAdapter {
 
     private Camera camera;
     private ModelBatch modelBatch;
