@@ -1,0 +1,23 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="IOS" type="com.robovm.idea.running.RoboVmIOSConfigurationType" factoryName="RoboVM iOS">
+    <module name="Trinketier.ios" />
+    <option name="targetType" value="Device" />
+    <option name="deviceArch" value="arm64" />
+    <option name="signingIdentityType" value="ID" />
+    <option name="signingIdentity" value="84DE6D3C44966655A6777B86E9E145E172430176" />
+    <option name="provisioningProfileType" value="ID" />
+    <option name="provisioningProfile" value="1b81d7e8-91d8-4348-9c53-826df94b36a6" />
+    <option name="targetDeviceUDID" value="00008101-0002105E2241001E" />
+    <option name="simArch" value="arm64" />
+    <option name="simulatorType" value="AUTO" />
+    <option name="simulatorName" value="" />
+    <option name="simulatorSdk" value="-1" />
+    <option name="simulatorLaunchWatch" value="0" />
+    <option name="arguments" value="" />
+    <option name="workingDir" value="" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+      <option name="Buildr.BeforeRunTask" enabled="true" />
+    </method>
+  </configuration>
+</component>

@@ -13,7 +13,7 @@
           <option value=":lwjgl3:run" />
         </list>
       </option>
-      <option name="vmOptions" />
+      <option name="vmOptions" value="-XstartOnFirstThread" />
     </ExternalSystemSettings>
     <ExternalSystemDebugServerProcess>true</ExternalSystemDebugServerProcess>
     <ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
