@@ -132,6 +132,9 @@ public class Camera implements InputProcessor {
 
     @Override
     public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+        if (Gdx.app.getType() == Application.ApplicationType.Desktop) {
+            Gdx.input.setCursorCatched(true);
+        }
         isDragging = false;
         return true;
     }

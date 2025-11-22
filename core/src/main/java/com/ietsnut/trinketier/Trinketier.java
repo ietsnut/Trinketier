@@ -30,14 +30,13 @@ public class Trinketier extends ApplicationAdapter {
     private ModelInstance floorInstance;
     private Texture image;
     private Billboard billboard;
+    private App app;
 
     @Override
     public void create() {
-        if (Gdx.app.getType() == Application.ApplicationType.Desktop) {
-            Gdx.input.setCursorCatched(true);
-        }
 
-        camera = new Camera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+        camera = new Camera(90, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.input.setInputProcessor(camera);
 
         modelBatch = new ModelBatch();
@@ -51,7 +50,7 @@ public class Trinketier extends ApplicationAdapter {
         decalBatch = new DecalBatch(new CameraGroupStrategy(camera.getPerspective()));
         billboard = new Billboard(new TextureRegion(image), 0, 1.5f, -5f, 2f, 2f);
         try {
-            new App();
+            app = new App();
         } catch (IOException ioe) {
             System.err.println("Couldn't start server:\n" + ioe);
         }
@@ -84,6 +83,7 @@ public class Trinketier extends ApplicationAdapter {
 
     @Override
     public void dispose() {
+        app.stop();
         modelBatch.dispose();
         decalBatch.dispose();
         floorModel.dispose();
