@@ -35,7 +35,6 @@ public class Trinketier extends ApplicationAdapter {
     @Override
     public void create() {
 
-
         camera = new Camera(90, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         Gdx.input.setInputProcessor(camera);
 
