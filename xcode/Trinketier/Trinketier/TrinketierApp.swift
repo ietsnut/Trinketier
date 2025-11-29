@@ -458,12 +458,12 @@ struct ContentView: View {
                     }
                     ScrollViewReader { proxy in
                         ScrollView {
-                            Text(serialController.receivedText)
+                            Text(serialController.receivedText.trimmingCharacters(in: .newlines))
                                 .font(.system(.body, design: .monospaced))
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .id("SerialBottom")
                         }
-                        .onChange(of: serialController.receivedText) { _ in
+                        .onChange(of: serialController.receivedText) { _, _ in
                             proxy.scrollTo("SerialBottom", anchor: .bottom)
                         }
                         .frame(height: 120)
