@@ -73,9 +73,15 @@ class AuthViewModel: ObservableObject {
     }
 }
 
+struct AIResponse: Codable {
+    let code: String
+    let comment: String?
+}
+
 class AIService: ObservableObject {
     @Published var lastAIStatus: String = "Idle"
     @Published var isRunning: Bool = false
+    @Published var aiComment: String? = nil
     
     private let model: TemplateGenerativeModel
     
@@ -119,7 +125,52 @@ class AIService: ObservableObject {
                 )
                 
                 let generatedRaw = response.text ?? ""
-                let generated = stripCodeFences(from: generatedRaw)
+                
+                // Trim whitespace from the response
+                var trimmedResponse = generatedRaw.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                // Strip code fences if present (e.g., ```json ... ```)
+                if trimmedResponse.hasPrefix("```") {
+                    // Remove opening fence and language identifier
+                    if let firstNewline = trimmedResponse.firstIndex(of: "\n") {
+                        let afterNewline = trimmedResponse.index(after: firstNewline)
+                        trimmedResponse = String(trimmedResponse[afterNewline...])
+                    }
+                    // Remove closing fence
+                    if let lastFenceRange = trimmedResponse.range(of: "```", options: .backwards) {
+                        trimmedResponse.removeSubrange(lastFenceRange.lowerBound..<trimmedResponse.endIndex)
+                    }
+                    trimmedResponse = trimmedResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                
+                // Try to parse JSON response first
+                if trimmedResponse.hasPrefix("{") && trimmedResponse.hasSuffix("}"),
+                   let jsonData = trimmedResponse.data(using: .utf8) {
+                    do {
+                        let aiResponse = try JSONDecoder().decode(AIResponse.self, from: jsonData)
+                        // Successfully parsed JSON response
+                        self.aiComment = aiResponse.comment
+                        let code = aiResponse.code.trimmingCharacters(in: .whitespacesAndNewlines)
+                        
+                        if code.isEmpty {
+                            self.lastAIStatus = "AI responded with no usable code."
+                            self.isRunning = false
+                            completion(nil)
+                        } else {
+                            self.lastAIStatus = "AI updated the code."
+                            self.isRunning = false
+                            completion(code)
+                        }
+                        return
+                    } catch {
+                        print("JSON parsing failed: \(error)")
+                        // Fall through to legacy handling
+                    }
+                }
+                
+                // Fallback to legacy plain text response
+                self.aiComment = nil
+                let generated = stripCodeFences(from: trimmedResponse)
                 
                 if generated.isEmpty {
                     self.lastAIStatus = "AI responded with no usable code."
@@ -582,6 +633,23 @@ struct ContentView: View {
                             .fill(Color.retroBlack)
                             .frame(height: 2)
                         
+                        // AI Comment (if present)
+                        if let comment = aiService.aiComment, !comment.isEmpty {
+                            VStack(spacing: 0) {
+                                Text(comment)
+                                    .font(.system(size: 13, design: .monospaced))
+                                    .foregroundStyle(Color.retroBlack.opacity(0.8))
+                                    .padding(8)
+                                    .padding(.leading, 4)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color.retroBlue)
+                                
+                                Rectangle()
+                                    .fill(Color.retroBlack)
+                                    .frame(height: 2)
+                            }
+                        }
+                        
                         // Buttons
                         HStack(spacing: 0) {
                             Button("Program") {
@@ -602,6 +670,7 @@ struct ContentView: View {
                             
                             Button("Clear") {
                                 aiPrompt = ""
+                                aiService.aiComment = nil
                             }
                             .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
                             .disabled(aiPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
