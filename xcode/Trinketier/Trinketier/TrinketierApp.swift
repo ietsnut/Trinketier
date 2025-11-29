@@ -149,6 +149,7 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
     @Published var receivedText: String = ""
     @Published var isOpen: Bool = false
     @Published var baudRate: Int = 115200
+    private let maxConsoleLines = 100
     
     private var currentPort: ORSSerialPort? {
         ORSSerialPortManager.shared().availablePorts.first { $0.path == selectedPortPath }
@@ -299,7 +300,28 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
         
         DispatchQueue.main.async {
             self.receivedText.append(cleaned)
+            self.trimConsoleToMaxLines()
         }
+    }
+    
+    private func trimConsoleToMaxLines() {
+        var newlinesSeen = 0
+        var index = receivedText.endIndex
+
+        // Walk backwards counting newline characters
+        while index > receivedText.startIndex && newlinesSeen <= maxConsoleLines {
+            index = receivedText.index(before: index)
+            if receivedText[index].isNewline {
+                newlinesSeen += 1
+            }
+        }
+
+        // If we don't even have more than maxConsoleLines, don't trim
+        guard newlinesSeen > maxConsoleLines else { return }
+
+        // We've just crossed one extra newline; trim everything before the next character
+        let cutIndex = receivedText.index(after: index)
+        receivedText.removeSubrange(receivedText.startIndex..<cutIndex)
     }
     
     func serialPortWasRemovedFromSystem(_ serialPort: ORSSerialPort) {
@@ -408,6 +430,7 @@ struct WindowToolbar: View {
             
             HStack(spacing: 0) {
                 // Auth Status
+                
                 HStack(spacing: 8) {
                     Circle()
                         .strokeBorder(Color.retroBlack, lineWidth: 2)
@@ -420,8 +443,6 @@ struct WindowToolbar: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .frame(maxHeight: .infinity)
-                .background(Color.retroWhite)
-                .border(Color.retroBlack, width: 2)
                 
                 // Pico Status
                 HStack(spacing: 8) {
@@ -436,8 +457,6 @@ struct WindowToolbar: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .frame(maxHeight: .infinity)
-                .background(Color.retroWhite)
-                .border(Color.retroBlack, width: 2)
             }
         }
         .frame(height: 34) // Force toolbar height to match buttons
@@ -535,9 +554,13 @@ struct ContentView: View {
                             .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
                             .disabled(aiPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
                             
+                            Rectangle()
+                                .fill(Color.retroBlack)
+                                .frame(width: 2)
+                            
                             Spacer()
                         }
-                        .frame(height: 28)
+                        .frame(height: 32)
                         .background(Color.retroWhite)
                     }
                     .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
@@ -590,6 +613,7 @@ struct ContentView: View {
                             Spacer()
                         }
                         .background(Color.retroWhite)
+                        .frame(height: 32)
                     }
                     .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
                 }
@@ -673,12 +697,13 @@ struct ContentView: View {
                         
                         Spacer()
                     }
-                    .frame(height: 36)
+                    .frame(height: 32)
                     .background(Color.retroWhite)
                 }
                 .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
             }
         }
+        .padding(.bottom, 4)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             scanForPicoVolume()
@@ -779,7 +804,7 @@ struct ContentView: View {
         do {
             let data = codeText.data(using: .utf8) ?? Data()
             try data.write(to: codeURL, options: .atomic)
-            status = "Saved code.py to Pico."
+            status = "Saved code to Pico."
         } catch {
             status = "Error writing code.py: \(error.localizedDescription)"
         }

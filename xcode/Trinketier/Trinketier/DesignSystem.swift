@@ -87,11 +87,13 @@ struct RetroWindowControls: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(Color.retroBlack)
                     )
-                    .border(Color.retroBlack, width: 2)
             }
             .frame(width: 34, height: 34)
             .buttonStyle(.plain)
             
+            Rectangle()
+                .fill(Color.retroBlack)
+                .frame(width: 2)
             // Maximize (Yellow)
             Button(action: { window?.zoom(nil) }) {
                 Rectangle()
@@ -101,10 +103,12 @@ struct RetroWindowControls: View {
                             .stroke(Color.retroBlack, lineWidth: 2)
                             .frame(width: 12, height: 12)
                     )
-                    .border(Color.retroBlack, width: 2)
             }
             .frame(width: 34, height: 34)
             .buttonStyle(.plain)
+            Rectangle()
+                .fill(Color.retroBlack)
+                .frame(width: 2)
         }
     }
 }
