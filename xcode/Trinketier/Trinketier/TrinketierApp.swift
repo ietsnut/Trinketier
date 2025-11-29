@@ -341,7 +341,7 @@ struct TrinketierApp: App {
                 .environmentObject(aiService)
                 .preferredColorScheme(.light)
         }
-        .windowStyle(.titleBar)
+        .windowStyle(.hiddenTitleBar)
     }
 }
 
@@ -349,27 +349,105 @@ struct RootView: View {
     @EnvironmentObject var auth: AuthViewModel
     
     var body: some View {
-        Group {
-            if auth.isAuthenticated {
-                ContentView()
-            } else {
-                VStack(spacing: 16) {
-                    Text("Trinketier – Connect to Workshop")
-                        .font(.title)
-                    Text(auth.userDescription)
-                        .foregroundStyle(.secondary)
-                    
-                    Button("Sign in anonymously") {
-                        auth.signInAnonymously()
+        ZStack {
+            GridBackground()
+            WindowAccessor() // Enable window dragging
+            
+            Group {
+                if auth.isAuthenticated {
+                    ContentView()
+                } else {
+                    VStack(spacing: 24) {
+                        Text("Trinketier")
+                            .font(.system(size: 48, weight: .black, design: .monospaced))
+                            .foregroundStyle(Color.retroBlack)
+                        
+                        Text("Connect to Workshop")
+                            .font(.title2)
+                            .fontDesign(.monospaced)
+                            .foregroundStyle(Color.retroBlack)
+                        
+                        Text(auth.userDescription)
+                            .font(.footnote)
+                            .fontDesign(.monospaced)
+                            .foregroundStyle(Color.retroBlack.opacity(0.7))
+                        
+                        Button("Sign in anonymously") {
+                            auth.signInAnonymously()
+                        }
+                        .buttonStyle(RetroButtonStyle(backgroundColor: .retroYellow))
                     }
+                    .padding(40)
+                    .retroCard(backgroundColor: .retroWhite)
+                    .frame(maxWidth: 500)
                 }
-                .padding()
-                .frame(minWidth: 400, minHeight: 200)
             }
         }
+        .overlay(
+            Rectangle()
+                .strokeBorder(Color.retroBlack, lineWidth: 4)
+                .ignoresSafeArea()
+        )
         .onAppear {
             auth.start()
         }
+    }
+}
+
+struct WindowToolbar: View {
+    @ObservedObject var auth: AuthViewModel
+    @ObservedObject var serialController: SerialPortController
+    var picoVolumeURL: URL?
+    var lastDetectedVolumeName: String?
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            RetroWindowControls()
+            
+            Spacer()
+            
+            HStack(spacing: 0) {
+                // Auth Status
+                HStack(spacing: 8) {
+                    Circle()
+                        .strokeBorder(Color.retroBlack, lineWidth: 2)
+                        .background(Circle().fill(auth.isAuthenticated ? Color.retroGreen : Color.retroPink))
+                        .frame(width: 12, height: 12)
+                    
+                    Text(auth.isAuthenticated ? "Logged In" : "Guest")
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .frame(maxHeight: .infinity)
+                .background(Color.retroWhite)
+                .border(Color.retroBlack, width: 2)
+                
+                // Pico Status
+                HStack(spacing: 8) {
+                    Circle()
+                        .strokeBorder(Color.retroBlack, lineWidth: 2)
+                        .background(Circle().fill(picoVolumeURL == nil ? Color.retroPink : Color.retroGreen))
+                        .frame(width: 12, height: 12)
+                    
+                    Text(picoVolumeURL == nil ? "No Pico" : "Connected: \(lastDetectedVolumeName ?? "Pico")")
+                        .font(.system(size: 14, weight: .bold, design: .monospaced))
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .frame(maxHeight: .infinity)
+                .background(Color.retroWhite)
+                .border(Color.retroBlack, width: 2)
+            }
+        }
+        .frame(height: 34) // Force toolbar height to match buttons
+        .background(Color.retroBeige)
+        .overlay(
+            Rectangle()
+                .frame(height: 2)
+                .foregroundStyle(Color.retroBlack),
+            alignment: .bottom
+        )
     }
 }
 
@@ -389,132 +467,219 @@ struct ContentView: View {
     private let volumeScanTimer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Trinketier")
-                        .font(.title2)
-                        .bold()
-                    Text(auth.userDescription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                
-                Spacer()
-                
-                Circle()
-                    .frame(width: 10, height: 10)
-                    .foregroundStyle(picoVolumeURL == nil ? .red : .green)
-                
-                Text(picoVolumeURL == nil ? "No Pico detected" : "Pico mounted: \(lastDetectedVolumeName ?? "")")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+        VStack(spacing: 0) {
+            // Toolbar
+            WindowToolbar(
+                auth: auth,
+                serialController: serialController,
+                picoVolumeURL: picoVolumeURL,
+                lastDetectedVolumeName: lastDetectedVolumeName
+            )
             
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Describe what you want the Pico to do:")
-                        .font(.subheadline)
-                    TextEditor(text: $aiPrompt)
-                        .font(.system(.body, design: .default))
-                        .frame(height: 120)
-                        .border(Color.gray.opacity(0.3), width: 1)
-                    HStack(spacing: 8) {
-                        Button("Send to AI") {
-                            aiService.sendPrompt(prompt: aiPrompt, codeContext: codeText) { newCode in
-                                guard let newCode = newCode, !newCode.isEmpty else { return }
-                                self.codeText = newCode
-                                if picoVolumeURL != nil {
-                                    saveCodeToPico()
+            VSplitView {
+                // Top: Split view for AI Assistant and Serial Console
+                HSplitView {
+                    // AI Assistant Panel
+                    VStack(spacing: 0) {
+                        // Header
+                        HStack {
+                            Text("AI Assistant")
+                                .font(.headline)
+                                .fontDesign(.monospaced)
+                            Spacer()
+                            Text(aiService.lastAIStatus)
+                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(8)
+                        .background(Color.retroBlue.opacity(0.3))
+                        
+                        Rectangle()
+                            .fill(Color.retroBlack)
+                            .frame(height: 2)
+                        
+                        // Content
+                        TextEditor(text: $aiPrompt)
+                            .font(.system(.body, design: .monospaced))
+                            .scrollContentBackground(.hidden)
+                            .padding(8)
+                            .background(Color.retroWhite)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .disabled(aiService.isRunning)
+                        
+                        Rectangle()
+                            .fill(Color.retroBlack)
+                            .frame(height: 2)
+                        
+                        // Buttons
+                        HStack(spacing: 0) {
+                            Button("Send to AI") {
+                                aiService.sendPrompt(prompt: aiPrompt, codeContext: codeText) { newCode in
+                                    guard let newCode = newCode, !newCode.isEmpty else { return }
+                                    self.codeText = newCode
+                                    if picoVolumeURL != nil {
+                                        saveCodeToPico()
+                                    }
                                 }
                             }
+                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroYellow))
+                            .disabled(aiPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
+                            
+                            Rectangle()
+                                .fill(Color.retroBlack)
+                                .frame(width: 2)
+                            
+                            Button("Clear") {
+                                aiPrompt = ""
+                            }
+                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
+                            .disabled(aiPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
+                            
+                            Spacer()
                         }
-                        .disabled(aiPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
+                        .frame(height: 28)
+                        .background(Color.retroWhite)
+                    }
+                    .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
+                    
+                    // Serial Console Panel
+                    VStack(spacing: 0) {
+                        // Header
+                        HStack {
+                            Text("Serial Console")
+                                .font(.headline)
+                                .fontDesign(.monospaced)
+                            Spacer()
+                            Text(serialController.isOpen ? "Connected" : "Disconnected")
+                                .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(8)
+                        .background(Color.retroGreen.opacity(0.3))
                         
-                        Button("Clear") {
-                            aiPrompt = ""
+                        Rectangle()
+                            .fill(Color.retroBlack)
+                            .frame(height: 2)
+                        
+                        // Content
+                        ScrollViewReader { proxy in
+                            ScrollView {
+                                Text(serialController.receivedText.trimmingCharacters(in: .newlines))
+                                    .font(.system(.body, design: .monospaced))
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(8)
+                                    .id("SerialBottom")
+                            }
+                            .onChange(of: serialController.receivedText) { _, _ in
+                                proxy.scrollTo("SerialBottom", anchor: .bottom)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color.retroWhite)
                         }
-                        .foregroundStyle(.secondary)
+                        
+                        Rectangle()
+                            .fill(Color.retroBlack)
+                            .frame(height: 2)
+                        
+                        // Buttons
+                        HStack(spacing: 0) {
+                            Button("Clear") {
+                                serialController.clear()
+                            }
+                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroWhite))
+                            Spacer()
+                        }
+                        .background(Color.retroWhite)
                     }
-                    Text(aiService.lastAIStatus)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
                 }
-                .frame(minWidth: 260)
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Serial Console")
-                            .font(.subheadline)
+                // Code Editor Panel
+                VStack(spacing: 0) {
+                    // Content
+                    CodeEditor(text: $codeText)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .disabled(aiService.isRunning)
+                    
+                    Rectangle()
+                        .fill(Color.retroBlack)
+                        .frame(height: 2)
+                    
+                    // Buttons
+                    HStack(spacing: 0) {
+                        
+                        Button(action: {
+                            if let window = NSApp.keyWindow,
+                               let firstResponder = window.firstResponder as? NSTextView {
+                                firstResponder.undoManager?.undo()
+                            }
+                        }) {
+                            HStack {
+                                Image(systemName: "arrow.uturn.backward")
+                                    .font(.system(size: 12, weight: .bold))
+                                Text("Undo")
+                            }
+                        }
+                        .buttonStyle(RetroButtonStyle(backgroundColor: .retroWhite))
+                        .keyboardShortcut("z", modifiers: [.command])
+                        
+                        Rectangle()
+                            .fill(Color.retroBlack)
+                            .frame(width: 2)
+                        
+                        Button("Upload") {
+                            saveCodeToPico()
+                        }
+                        .buttonStyle(RetroButtonStyle(backgroundColor: .retroGreen))
+                        .keyboardShortcut("s", modifiers: [.command])
+                        .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
+                        
+                        Rectangle()
+                            .fill(Color.retroBlack)
+                            .frame(width: 2)
+                        
+                        Button("Reload") {
+                            loadCodeFromPico()
+                        }
+                        .buttonStyle(RetroButtonStyle(backgroundColor: .retroBlue))
+                        .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
+                        
+                        Rectangle()
+                            .fill(Color.retroBlack)
+                            .frame(width: 2)
+                
+ 
+                        
+                        Button("Reset") {
+                            newCodeOnPico()
+                        }
+                        .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
+                        .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
+                        
+                        Rectangle()
+                            .fill(Color.retroBlack)
+                            .frame(width: 2)
+                        
+                        if isBusy || aiService.isRunning {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                                .padding(8)
+                        } else {
+                            Text(status)
+                                .font(.system(size: 14, weight: .bold, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .padding(8)
+                        }
+                        
                         Spacer()
-                        Circle()
-                            .frame(width: 8, height: 8)
-                            .foregroundStyle(serialController.isOpen ? .green : .red)
-                        Text(serialController.isOpen ? "Connected" : "Disconnected")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
-                    ScrollViewReader { proxy in
-                        ScrollView {
-                            Text(serialController.receivedText.trimmingCharacters(in: .newlines))
-                                .font(.system(.body, design: .monospaced))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .id("SerialBottom")
-                        }
-                        .onChange(of: serialController.receivedText) { _, _ in
-                            proxy.scrollTo("SerialBottom", anchor: .bottom)
-                        }
-                        .frame(height: 120)
-                        .border(Color.gray.opacity(0.3), width: 1)
-                    }
-                    HStack {
-                        Button("Clear") {
-                            serialController.clear()
-                        }
-                        Spacer()
-                    }
+                    .frame(height: 36)
+                    .background(Color.retroWhite)
                 }
-                .frame(minWidth: 260)
-            }
-            
-            HStack(spacing: 10) {
-                Button("Reset") {
-                    newCodeOnPico()
-                }
-                .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
-                
-                Button("Reload") {
-                    loadCodeFromPico()
-                }
-                .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
-                
-                Button("Upload") {
-                    saveCodeToPico()
-                }
-                .keyboardShortcut("s", modifiers: [.command])
-                .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
-                
-                Spacer()
-                
-                if isBusy || aiService.isRunning {
-                    ProgressView()
-                        .scaleEffect(0.7)
-                }
-            }
-            
-            CodeEditor(text: $codeText)
-                .frame(minHeight: 300)
-                .border(Color.gray.opacity(0.3), width: 1)
-            
-            HStack {
-                Text(status)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                Spacer()
+                .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
             }
         }
-        .padding()
-        .frame(minWidth: 700, minHeight: 500)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .onAppear {
             scanForPicoVolume()
             serialController.autoDetectIfNeeded()

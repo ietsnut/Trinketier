@@ -5,12 +5,12 @@
 //  Created by Marijn Brussel on 29/11/2025.
 //
 
-
 import SwiftUI
 import AppKit
 
 struct CodeEditor: NSViewRepresentable {
     @Binding var text: String
+    var disabled: Bool = false
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -21,12 +21,20 @@ struct CodeEditor: NSViewRepresentable {
         textView.isRichText = false
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
-        textView.font = .monospacedSystemFont(ofSize: NSFont.systemFontSize, weight: .regular)
+        textView.isEditable = !disabled
+        textView.isSelectable = true
+        textView.allowsUndo = true
+        textView.font = .monospacedSystemFont(ofSize: 14, weight: .regular)
+        textView.backgroundColor = NSColor(red: 0.99, green: 0.99, blue: 0.99, alpha: 1.0) // Retro White
+        textView.drawsBackground = true
+        textView.textContainerInset = NSSize(width: 8, height: 8) // Inner padding
         textView.delegate = context.coordinator
 
         let scrollView = NSScrollView()
         scrollView.hasVerticalScroller = true
         scrollView.documentView = textView
+        scrollView.backgroundColor = NSColor(red: 0.99, green: 0.99, blue: 0.99, alpha: 1.0) // Retro White
+        scrollView.drawsBackground = true
 
         // Initial content
         context.coordinator.applyHighlighting(text, to: textView)
@@ -66,14 +74,15 @@ struct CodeEditor: NSViewRepresentable {
 
             // Base attributes
             attributed.addAttribute(.font,
-                                    value: NSFont.monospacedSystemFont(ofSize: NSFont.systemFontSize,
+                                    value: NSFont.monospacedSystemFont(ofSize: 14,
                                                                        weight: .regular),
                                     range: fullRange)
+            attributed.addAttribute(.foregroundColor, value: NSColor.black, range: fullRange)
 
             // Very simple Python keywords highlighter
             let keywords = ["def", "class", "import", "from", "for", "while", "if", "elif", "else",
-                            "return", "try", "except", "with", "as", "True", "False", "None"]
-            let keywordColor = NSColor.systemBlue
+                            "return", "try", "except", "with", "as", "True", "False", "None", "print"]
+            let keywordColor = NSColor(red: 0.0, green: 0.0, blue: 0.8, alpha: 1.0) // Dark Blue
             let keywordPattern = "\\b(" + keywords.joined(separator: "|") + ")\\b"
 
             if let regex = try? NSRegularExpression(pattern: keywordPattern, options: []) {
@@ -87,7 +96,7 @@ struct CodeEditor: NSViewRepresentable {
             // Strings
             if let stringRegex = try? NSRegularExpression(pattern: #""([^"\\]|\\.)*"|'([^'\\]|\\.)*'"#,
                                                           options: []) {
-                let stringColor = NSColor.systemRed
+                let stringColor = NSColor(red: 0.8, green: 0.0, blue: 0.0, alpha: 1.0) // Dark Red
                 stringRegex.enumerateMatches(in: text, options: [], range: fullRange) { match, _, _ in
                     if let r = match?.range {
                         attributed.addAttribute(.foregroundColor, value: stringColor, range: r)
@@ -97,7 +106,7 @@ struct CodeEditor: NSViewRepresentable {
 
             // Comments (# ...)
             if let commentRegex = try? NSRegularExpression(pattern: "#.*$", options: [.anchorsMatchLines]) {
-                let commentColor = NSColor.systemGreen
+                let commentColor = NSColor(red: 0.0, green: 0.5, blue: 0.0, alpha: 1.0) // Dark Green
                 commentRegex.enumerateMatches(in: text, options: [], range: fullRange) { match, _, _ in
                     if let r = match?.range {
                         attributed.addAttribute(.foregroundColor, value: commentColor, range: r)
@@ -105,7 +114,13 @@ struct CodeEditor: NSViewRepresentable {
                 }
             }
 
+            let selectedRange = textView.selectedRange()
             textView.textStorage?.setAttributedString(attributed)
+            
+            // Restore selection if valid
+            if selectedRange.location + selectedRange.length <= attributed.length {
+                textView.setSelectedRange(selectedRange)
+            }
         }
     }
 }
