@@ -644,6 +644,7 @@ struct ContentView: View {
                                     .font(.system(.body, design: .monospaced))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(8)
+                                    .textSelection(.enabled)
                                     .id("SerialBottom")
                             }
                             .onChange(of: serialController.receivedText) { _ in
