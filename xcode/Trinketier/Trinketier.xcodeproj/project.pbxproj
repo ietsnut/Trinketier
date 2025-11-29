@@ -6,13 +6,38 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A23EC5572EDA8E510051D0BC /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC5562EDA8E510051D0BC /* FirebaseAI */; };
+		A23EC5592EDA8E510051D0BC /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC5582EDA8E510051D0BC /* FirebaseAILogic */; };
+		A23EC55B2EDA8E510051D0BC /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC55A2EDA8E510051D0BC /* FirebaseAppCheck */; };
+		A23EC55D2EDA8E510051D0BC /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC55C2EDA8E510051D0BC /* FirebaseAuth */; };
+		A23EC55F2EDA8E510051D0BC /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC55E2EDA8E510051D0BC /* FirebaseCore */; };
+		A23EC5612EDA8E510051D0BC /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC5602EDA8E510051D0BC /* FirebaseFirestore */; };
+		A23EC5632EDA8E510051D0BC /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC5622EDA8E510051D0BC /* FirebaseFunctions */; };
+		A23EC5652EDA8E510051D0BC /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC5642EDA8E510051D0BC /* FirebaseMessaging */; };
+		A23EC6E82EDA98E90051D0BC /* ORSSerial in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC6E72EDA98E90051D0BC /* ORSSerial */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		A238FAC82ED24F0F00D17246 /* Trinketier.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Trinketier.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A23EC6E52EDA92760051D0BC /* Exceptions for "Trinketier" folder in "Trinketier" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A238FAC72ED24F0F00D17246 /* Trinketier */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A238FACA2ED24F0F00D17246 /* Trinketier */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A23EC6E52EDA92760051D0BC /* Exceptions for "Trinketier" folder in "Trinketier" target */,
+			);
 			path = Trinketier;
 			sourceTree = "<group>";
 		};
@@ -23,6 +48,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A23EC5652EDA8E510051D0BC /* FirebaseMessaging in Frameworks */,
+				A23EC5592EDA8E510051D0BC /* FirebaseAILogic in Frameworks */,
+				A23EC5632EDA8E510051D0BC /* FirebaseFunctions in Frameworks */,
+				A23EC6E82EDA98E90051D0BC /* ORSSerial in Frameworks */,
+				A23EC55F2EDA8E510051D0BC /* FirebaseCore in Frameworks */,
+				A23EC55B2EDA8E510051D0BC /* FirebaseAppCheck in Frameworks */,
+				A23EC5572EDA8E510051D0BC /* FirebaseAI in Frameworks */,
+				A23EC55D2EDA8E510051D0BC /* FirebaseAuth in Frameworks */,
+				A23EC5612EDA8E510051D0BC /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +99,15 @@
 			);
 			name = Trinketier;
 			packageProductDependencies = (
+				A23EC5562EDA8E510051D0BC /* FirebaseAI */,
+				A23EC5582EDA8E510051D0BC /* FirebaseAILogic */,
+				A23EC55A2EDA8E510051D0BC /* FirebaseAppCheck */,
+				A23EC55C2EDA8E510051D0BC /* FirebaseAuth */,
+				A23EC55E2EDA8E510051D0BC /* FirebaseCore */,
+				A23EC5602EDA8E510051D0BC /* FirebaseFirestore */,
+				A23EC5622EDA8E510051D0BC /* FirebaseFunctions */,
+				A23EC5642EDA8E510051D0BC /* FirebaseMessaging */,
+				A23EC6E72EDA98E90051D0BC /* ORSSerial */,
 			);
 			productName = Trinketier;
 			productReference = A238FAC82ED24F0F00D17246 /* Trinketier.app */;
@@ -94,6 +137,10 @@
 			);
 			mainGroup = A238FABF2ED24F0F00D17246;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				A23EC6E62EDA98E90051D0BC /* XCRemoteSwiftPackageReference "ORSSerialPort" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = A238FAC92ED24F0F00D17246 /* Products */;
 			projectDirPath = "";
@@ -247,6 +294,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = Trinketier/Trinketier.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7RGWHWHU93;
@@ -260,6 +308,7 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Trinketier/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -275,7 +324,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ietsnut.Trinketier;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ietsnut.trinketier;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
@@ -286,13 +335,13 @@
 				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 26.1;
 			};
 			name = Debug;
@@ -303,6 +352,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = Trinketier/Trinketier.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 7RGWHWHU93;
@@ -316,6 +366,7 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Trinketier/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -331,7 +382,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.1;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ietsnut.Trinketier;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ietsnut.trinketier;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
@@ -342,13 +393,13 @@
 				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = macosx;
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 26.1;
 			};
 			name = Release;
@@ -375,6 +426,73 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.6.0;
+			};
+		};
+		A23EC6E62EDA98E90051D0BC /* XCRemoteSwiftPackageReference "ORSSerialPort" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/armadsen/ORSSerialPort";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A23EC5562EDA8E510051D0BC /* FirebaseAI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAI;
+		};
+		A23EC5582EDA8E510051D0BC /* FirebaseAILogic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAILogic;
+		};
+		A23EC55A2EDA8E510051D0BC /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+		A23EC55C2EDA8E510051D0BC /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		A23EC55E2EDA8E510051D0BC /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		A23EC5602EDA8E510051D0BC /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		A23EC5622EDA8E510051D0BC /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
+		};
+		A23EC5642EDA8E510051D0BC /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+		A23EC6E72EDA98E90051D0BC /* ORSSerial */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A23EC6E62EDA98E90051D0BC /* XCRemoteSwiftPackageReference "ORSSerialPort" */;
+			productName = ORSSerial;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A238FAC02ED24F0F00D17246 /* Project object */;
 }
