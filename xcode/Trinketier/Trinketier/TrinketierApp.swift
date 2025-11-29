@@ -392,7 +392,7 @@ struct ContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading) {
-                    Text("Raspberry Pi Pico Code Editor")
+                    Text("Trinketier")
                         .font(.title2)
                         .bold()
                     Text(auth.userDescription)
@@ -410,8 +410,6 @@ struct ContentView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            
-            Divider()
             
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -479,20 +477,18 @@ struct ContentView: View {
                 .frame(minWidth: 260)
             }
             
-            Divider()
-            
             HStack(spacing: 10) {
-                Button("New Code") {
+                Button("Reset") {
                     newCodeOnPico()
                 }
                 .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
                 
-                Button("Reload from Pico") {
+                Button("Reload") {
                     loadCodeFromPico()
                 }
                 .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
                 
-                Button("Upload to Pico") {
+                Button("Upload") {
                     saveCodeToPico()
                 }
                 .keyboardShortcut("s", modifiers: [.command])
