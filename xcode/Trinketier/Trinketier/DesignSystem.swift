@@ -109,6 +109,37 @@ struct RetroWindowControls: View {
             Rectangle()
                 .fill(Color.retroBlack)
                 .frame(width: 2)
+            
+            // Snap Left (Green)
+            Button(action: {
+                guard let window = window else { return }
+                
+                // Use the window's screen if available, otherwise fall back to main screen
+                guard let screen = window.screen ?? NSScreen.main else { return }
+                
+                let screenFrame = screen.visibleFrame
+                let newFrame = NSRect(
+                    x: screenFrame.minX,
+                    y: screenFrame.minY,
+                    width: screenFrame.width / 2,
+                    height: screenFrame.height
+                )
+                
+                window.setFrame(newFrame, display: true, animate: true)
+            }) {
+                Rectangle()
+                    .fill(Color.retroGreen)
+                    .overlay(
+                        Image(systemName: "arrow.left.and.right")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(Color.retroBlack)
+                    )
+            }
+            .frame(width: 34, height: 34)
+            .buttonStyle(.plain)
+            Rectangle()
+                .fill(Color.retroBlack)
+                .frame(width: 2)
         }
     }
 }
@@ -169,5 +200,28 @@ struct GridBackground: View {
         }
         .background(Color.retroBeige)
         .ignoresSafeArea()
+    }
+}
+
+struct RetroVolumeSlider: View {
+    @Binding var value: Float   // 0...1
+    
+    var body: some View {
+        Slider(
+            value: Binding(
+                get: { Double(value) },
+                set: { value = Float($0) }
+            ),
+            in: 0...1
+        )
+        .controlSize(.small)
+        .tint(.retroGreen)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background(
+            Rectangle()
+                .fill(Color.retroBeige)  // “plastic” background
+        )
+        .frame(width: 90)               // adjust to taste
     }
 }

@@ -6,6 +6,7 @@ import FirebaseAppCheck
 import FirebaseAILogic
 import ORSSerial
 
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
     }
@@ -307,7 +308,7 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
     private func trimConsoleToMaxLines() {
         var newlinesSeen = 0
         var index = receivedText.endIndex
-
+        
         // Walk backwards counting newline characters
         while index > receivedText.startIndex && newlinesSeen <= maxConsoleLines {
             index = receivedText.index(before: index)
@@ -315,10 +316,10 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
                 newlinesSeen += 1
             }
         }
-
+        
         // If we don't even have more than maxConsoleLines, don't trim
         guard newlinesSeen > maxConsoleLines else { return }
-
+        
         // We've just crossed one extra newline; trim everything before the next character
         let cutIndex = receivedText.index(after: index)
         receivedText.removeSubrange(receivedText.startIndex..<cutIndex)
@@ -421,6 +422,7 @@ struct WindowToolbar: View {
     @ObservedObject var serialController: SerialPortController
     var picoVolumeURL: URL?
     var lastDetectedVolumeName: String?
+    @ObservedObject var musicPlayer: MusicPlayer
     
     var body: some View {
         HStack(spacing: 0) {
@@ -429,7 +431,38 @@ struct WindowToolbar: View {
             Spacer()
             
             HStack(spacing: 0) {
-                // Auth Status
+
+                
+                
+                Rectangle()
+                    .fill(Color.retroBlack)
+                    .frame(width: 2)
+                
+                // Mini Music Player
+                HStack(spacing: 0) {
+                    
+                    Button(action: {
+                        musicPlayer.togglePlayPause()
+                    }) {
+                        Image(systemName: musicPlayer.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .frame(width: 12, height: 12)
+                            
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 2)
+                    .padding(6)
+                    
+                    Rectangle()
+                        .fill(Color.retroBlack)
+                        .frame(width: 2)
+                    
+                    RetroVolumeSlider(value: $musicPlayer.volume)
+                }
+                
+                Rectangle()
+                    .fill(Color.retroBlack)
+                    .frame(width: 2)
                 
                 HStack(spacing: 8) {
                     Circle()
@@ -444,6 +477,10 @@ struct WindowToolbar: View {
                 .padding(.vertical, 6)
                 .frame(maxHeight: .infinity)
                 
+                
+                Rectangle()
+                    .fill(Color.retroBlack)
+                    .frame(width: 2)
                 // Pico Status
                 HStack(spacing: 8) {
                     Circle()
@@ -454,6 +491,8 @@ struct WindowToolbar: View {
                     Text(picoVolumeURL == nil ? "No Pico" : "Connected: \(lastDetectedVolumeName ?? "Pico")")
                         .font(.system(size: 14, weight: .bold, design: .monospaced))
                 }
+                
+
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .frame(maxHeight: .infinity)
@@ -482,6 +521,7 @@ struct ContentView: View {
     @State private var isBusy: Bool = false
     @State private var aiPrompt: String = ""
     @StateObject private var serialController = SerialPortController()
+    @StateObject private var musicPlayer = MusicPlayer()
     
     private let volumeScanTimer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
     
@@ -492,7 +532,8 @@ struct ContentView: View {
                 auth: auth,
                 serialController: serialController,
                 picoVolumeURL: picoVolumeURL,
-                lastDetectedVolumeName: lastDetectedVolumeName
+                lastDetectedVolumeName: lastDetectedVolumeName,
+                musicPlayer: musicPlayer       // 👈 new parameter
             )
             
             VSplitView {
@@ -532,7 +573,7 @@ struct ContentView: View {
                         
                         // Buttons
                         HStack(spacing: 0) {
-                            Button("Send to AI") {
+                            Button("Program") {
                                 aiService.sendPrompt(prompt: aiPrompt, codeContext: codeText) { newCode in
                                     guard let newCode = newCode, !newCode.isEmpty else { return }
                                     self.codeText = newCode
@@ -610,7 +651,7 @@ struct ContentView: View {
                             Button("Clear") {
                                 serialController.clear()
                             }
-                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroWhite))
+                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
                             Rectangle()
                                 .fill(Color.retroBlack)
                                 .frame(width: 2)
@@ -619,7 +660,7 @@ struct ContentView: View {
                         .background(Color.retroWhite)
                         .frame(height: 32)
                         
-
+                        
                     }
                     .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
                 }
@@ -677,8 +718,8 @@ struct ContentView: View {
                         Rectangle()
                             .fill(Color.retroBlack)
                             .frame(width: 2)
-                
- 
+                        
+                        
                         
                         Button("Reset") {
                             newCodeOnPico()
