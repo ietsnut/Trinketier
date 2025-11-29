@@ -434,7 +434,7 @@ struct RootView: View {
     
     var body: some View {
         ZStack {
-            GridBackground()
+            
             WindowAccessor() // Enable window dragging
             
             Group {
@@ -467,6 +467,7 @@ struct RootView: View {
                 }
             }
         }
+        .background(Color.retroBeige)
         .overlay(
             Rectangle()
                 .strokeBorder(Color.retroBlack, lineWidth: 4)

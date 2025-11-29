@@ -173,36 +173,6 @@ struct WindowAccessor: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
-// MARK: - Background
-
-struct GridBackground: View {
-    var body: some View {
-        Canvas { context, size in
-            let step: CGFloat = 20
-            let width = size.width
-            let height = size.height
-            
-            var path = Path()
-            
-            // Vertical lines
-            for x in stride(from: 0, to: width, by: step) {
-                path.move(to: CGPoint(x: x, y: 0))
-                path.addLine(to: CGPoint(x: x, y: height))
-            }
-            
-            // Horizontal lines
-            for y in stride(from: 0, to: height, by: step) {
-                path.move(to: CGPoint(x: 0, y: y))
-                path.addLine(to: CGPoint(x: width, y: y))
-            }
-            
-            context.stroke(path, with: .color(.retroBlack.opacity(0.1)), lineWidth: 1)
-        }
-        .background(Color.retroBeige)
-        .ignoresSafeArea()
-    }
-}
-
 struct RetroVolumeSlider: View {
     @Binding var value: Float   // 0...1
     
