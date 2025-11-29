@@ -594,7 +594,7 @@ struct ContentView: View {
                                     .padding(8)
                                     .id("SerialBottom")
                             }
-                            .onChange(of: serialController.receivedText) { _, _ in
+                            .onChange(of: serialController.receivedText) { _ in
                                 proxy.scrollTo("SerialBottom", anchor: .bottom)
                             }
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
