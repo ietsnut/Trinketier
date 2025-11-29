@@ -4,10 +4,10 @@ import FirebaseCore
 import FirebaseAuth
 import FirebaseAppCheck
 import FirebaseAILogic
+import ORSSerial
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
-
     }
 }
 
@@ -76,11 +76,9 @@ class AIService: ObservableObject {
     @Published var lastAIStatus: String = "Idle"
     @Published var isRunning: Bool = false
     
-    // Use a TemplateGenerativeModel so that the prompt lives server-side
     private let model: TemplateGenerativeModel
     
     init() {
-        // Initialize Gemini Developer API backend and get a template model
         let ai = FirebaseAI.firebaseAI(backend: .googleAI())
         self.model = ai.templateGenerativeModel()
     }
@@ -105,19 +103,12 @@ class AIService: ObservableObject {
         return result
     }
     
-    /// Sends the user's request and current code context to a server prompt template.
-    /// The template (configured in the Firebase console) is responsible for:
-    /// - System instructions
-    /// - How codeContext & studentPrompt are used
-    /// - Enforcing "return only code.py contents" behavior
     func sendPrompt(prompt: String, codeContext: String, completion: @escaping (String?) -> Void) {
         isRunning = true
         lastAIStatus = "Talking to Gemini…"
         
         Task { @MainActor in
             do {
-                // Call the server prompt template instead of constructing the prompt client-side.
-                // The template should expect "codeContext" and "studentPrompt" as input variables.
                 let response = try await model.generateContent(
                     templateID: "pico-code-assistant-v1-0-0",
                     inputs: [
@@ -147,6 +138,141 @@ class AIService: ObservableObject {
     }
 }
 
+class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
+    @Published var selectedPortPath: String?
+    @Published var receivedText: String = ""
+    @Published var isOpen: Bool = false
+    @Published var baudRate: Int = 115200
+    
+    private var currentPort: ORSSerialPort? {
+        ORSSerialPortManager.shared().availablePorts.first { $0.path == selectedPortPath }
+    }
+    
+    func open() {
+        guard let port = currentPort else { return }
+        if port.isOpen { return }
+
+        port.baudRate = NSNumber(value: baudRate)
+        port.parity = .none
+        port.numberOfStopBits = 1
+        port.usesRTSCTSFlowControl = false
+        port.usesDTRDSRFlowControl = false
+
+        port.delegate = self
+        port.open()
+
+        // 👇 These lines are the important bit for the Pico/CircuitPython
+        port.dtr = true        // Tell the board “terminal is ready”
+        port.rts = true        // Often harmless/needed on USB CDC devices
+
+        isOpen = port.isOpen
+    }
+
+    
+    func close() {
+        currentPort?.close()
+        isOpen = false
+    }
+    
+    func clear() {
+        receivedText = ""
+    }
+    
+    func serialPort(_ serialPort: ORSSerialPort, didReceive data: Data) {
+        if let string = String(data: data, encoding: .utf8) {
+            DispatchQueue.main.async {
+                self.receivedText.append(string)
+            }
+        }
+    }
+    
+    func serialPortWasRemovedFromSystem(_ serialPort: ORSSerialPort) {
+        DispatchQueue.main.async {
+            if self.selectedPortPath == serialPort.path {
+                self.selectedPortPath = nil
+                self.isOpen = false
+            }
+        }
+    }
+    
+    func serialPortWasOpened(_ serialPort: ORSSerialPort) {
+        DispatchQueue.main.async {
+            if self.selectedPortPath == serialPort.path {
+                self.isOpen = true
+            }
+        }
+    }
+    
+    func serialPortWasClosed(_ serialPort: ORSSerialPort) {
+        DispatchQueue.main.async {
+            if self.selectedPortPath == serialPort.path {
+                self.isOpen = false
+            }
+        }
+    }
+}
+
+struct SerialMonitorView: View {
+    @StateObject private var controller = SerialPortController()
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Serial Monitor")
+                    .font(.title2)
+                    .bold()
+                Spacer()
+                Picker("Port", selection: $controller.selectedPortPath) {
+                    Text("None").tag(String?.none)
+                    ForEach(ORSSerialPortManager.shared().availablePorts, id: \.path) { port in
+                        Text(port.name ?? port.path).tag(Optional(port.path))
+                    }
+                }
+                .labelsHidden()
+                Picker("Baud", selection: $controller.baudRate) {
+                    ForEach([9600, 19200, 38400, 57600, 115200], id: \.self) { rate in
+                        Text("\(rate)").tag(rate)
+                    }
+                }
+                .frame(width: 100)
+                if controller.isOpen {
+                    Text("Connected")
+                        .foregroundStyle(.green)
+                        .font(.caption)
+                } else {
+                    Text("Disconnected")
+                        .foregroundStyle(.secondary)
+                        .font(.caption)
+                }
+            }
+            
+            HStack(spacing: 10) {
+                Button(controller.isOpen ? "Close Port" : "Open Port") {
+                    if controller.isOpen {
+                        controller.close()
+                    } else {
+                        controller.open()
+                    }
+                }
+                .disabled(controller.selectedPortPath == nil)
+                
+                Button("Clear") {
+                    controller.clear()
+                }
+                
+                Spacer()
+            }
+            
+            TextEditor(text: $controller.receivedText)
+                .font(.system(.body, design: .monospaced))
+                .border(Color.gray.opacity(0.3), width: 1)
+                .frame(minHeight: 300)
+        }
+        .padding()
+        .frame(minWidth: 600, minHeight: 400)
+    }
+}
+
 @main
 struct TrinketierApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -158,6 +284,11 @@ struct TrinketierApp: App {
             RootView()
                 .environmentObject(authViewModel)
                 .environmentObject(aiService)
+        }
+        .windowStyle(.titleBar)
+        
+        WindowGroup("Serial Monitor", id: "serial") {
+            SerialMonitorView()
         }
         .windowStyle(.titleBar)
     }
@@ -194,6 +325,7 @@ struct RootView: View {
 struct ContentView: View {
     @EnvironmentObject var auth: AuthViewModel
     @EnvironmentObject var aiService: AIService
+    @Environment(\.openWindow) private var openWindow
     
     @State private var codeText: String = "# Your Pico code will appear here…\n"
     @State private var status: String = "Looking for Pico…"
@@ -275,6 +407,10 @@ struct ContentView: View {
                 }
                 .keyboardShortcut("s", modifiers: [.command])
                 .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
+                
+                Button("Open Serial Monitor") {
+                    openWindow(id: "serial")
+                }
                 
                 Spacer()
                 
