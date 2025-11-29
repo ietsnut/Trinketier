@@ -192,6 +192,14 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
         receivedText = ""
     }
     
+    func send(text: String) {
+        guard let port = currentPort, port.isOpen else { return }
+        let textWithNewline = text + "\r\n"
+        if let data = textWithNewline.data(using: .utf8) {
+            port.send(data)
+        }
+    }
+    
     func autoDetectIfNeeded() {
         if selectedPortPath != nil { return }
         if isDetecting { return }
@@ -268,7 +276,9 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
     }
     
     private func stripControlSequences(_ text: String) -> String {
-        let pattern = "\u{001B}\\][^\u{001B}]*\u{001B}\\\\"
+        // Matches OSC sequences: ESC ] ... (BEL or ESC \)
+        // \u{001B} is ESC, \u{0007} is BEL
+        let pattern = "\u{001B}\\][^\u{0007}\u{001B}]*(\u{0007}|\u{001B}\\\\)"
         guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return text }
         let nsText = text as NSString
         let range = NSRange(location: 0, length: nsText.length)
@@ -520,6 +530,7 @@ struct ContentView: View {
     @State private var lastLoadedVolumePath: String? = nil
     @State private var isBusy: Bool = false
     @State private var aiPrompt: String = ""
+    @State private var serialInput: String = ""
     @StateObject private var serialController = SerialPortController()
     @StateObject private var musicPlayer = MusicPlayer()
     
@@ -648,14 +659,34 @@ struct ContentView: View {
                         
                         // Buttons
                         HStack(spacing: 0) {
+                            TextField("Send to Pico...", text: $serialInput)
+                                .font(.system(.body, design: .monospaced))
+                                .textFieldStyle(.plain)
+                                .padding(8)
+                                .onSubmit {
+                                    serialController.send(text: serialInput)
+                                    serialInput = ""
+                                }
+                            
+                            Rectangle()
+                                .fill(Color.retroBlack)
+                                .frame(width: 2)
+                            
+                            Button("Send") {
+                                serialController.send(text: serialInput)
+                                serialInput = ""
+                            }
+                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroGreen))
+                            .disabled(serialInput.isEmpty || !serialController.isOpen)
+                            
+                            Rectangle()
+                                .fill(Color.retroBlack)
+                                .frame(width: 2)
+
                             Button("Clear") {
                                 serialController.clear()
                             }
                             .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
-                            Rectangle()
-                                .fill(Color.retroBlack)
-                                .frame(width: 2)
-                            Spacer()
                         }
                         .background(Color.retroWhite)
                         .frame(height: 33)
