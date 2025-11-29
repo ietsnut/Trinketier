@@ -601,7 +601,7 @@ struct ContentView: View {
                             
                             Spacer()
                         }
-                        .frame(height: 32)
+                        .frame(height: 33)
                         .background(Color.retroWhite)
                     }
                     .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
@@ -658,7 +658,7 @@ struct ContentView: View {
                             Spacer()
                         }
                         .background(Color.retroWhite)
-                        .frame(height: 32)
+                        .frame(height: 33)
                         
                         
                     }
@@ -744,7 +744,7 @@ struct ContentView: View {
                         
                         Spacer()
                     }
-                    .frame(height: 32)
+                    .frame(height: 33)
                     .background(Color.retroWhite)
                 }
                 .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
