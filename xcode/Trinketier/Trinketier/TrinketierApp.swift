@@ -576,6 +576,7 @@ struct ContentView: View {
                             Text(serialController.isOpen ? "Connected" : "Disconnected")
                                 .font(.system(size: 12, weight: .bold, design: .monospaced))
                                 .foregroundStyle(.secondary)
+                                .padding(.trailing, 4)
                         }
                         .padding(8)
                         .background(Color.retroGreen.opacity(0.3))
