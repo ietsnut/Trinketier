@@ -139,7 +139,13 @@ class AIService: ObservableObject {
 }
 
 class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
-    @Published var selectedPortPath: String?
+    @Published var selectedPortPath: String? {
+        didSet {
+            if selectedPortPath != nil {
+                cancelDetection()
+            }
+        }
+    }
     @Published var receivedText: String = ""
     @Published var isOpen: Bool = false
     @Published var baudRate: Int = 115200
@@ -148,26 +154,32 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
         ORSSerialPortManager.shared().availablePorts.first { $0.path == selectedPortPath }
     }
     
+    private let detectionSignature = "\u{001B}]0;"
+    private var isDetecting = false
+    private var detectionPorts: [ORSSerialPort] = []
+    private var detectionIndex: Int = 0
+    private var detectionTimeout: DispatchWorkItem?
+    private var detectionBuffer: String = ""
+    private var detectionCurrentPort: ORSSerialPort?
+    
+    override init() {
+        super.init()
+    }
+    
     func open() {
         guard let port = currentPort else { return }
         if port.isOpen { return }
-
         port.baudRate = NSNumber(value: baudRate)
         port.parity = .none
         port.numberOfStopBits = 1
         port.usesRTSCTSFlowControl = false
         port.usesDTRDSRFlowControl = false
-
         port.delegate = self
         port.open()
-
-        // 👇 These lines are the important bit for the Pico/CircuitPython
-        port.dtr = true        // Tell the board “terminal is ready”
-        port.rts = true        // Often harmless/needed on USB CDC devices
-
+        port.dtr = true
+        port.rts = true
         isOpen = port.isOpen
     }
-
     
     func close() {
         currentPort?.close()
@@ -178,11 +190,115 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
         receivedText = ""
     }
     
-    func serialPort(_ serialPort: ORSSerialPort, didReceive data: Data) {
-        if let string = String(data: data, encoding: .utf8) {
-            DispatchQueue.main.async {
-                self.receivedText.append(string)
+    func autoDetectIfNeeded() {
+        if selectedPortPath != nil { return }
+        if isDetecting { return }
+        startDetection()
+    }
+    
+    private func startDetection() {
+        let ports = ORSSerialPortManager.shared().availablePorts
+        let usbCandidates = ports.filter { port in
+            port.path.contains("tty.usb") || port.path.contains("tty.SLAB") || port.path.contains("tty.usbmodem") || port.path.contains("tty.usbserial")
+        }
+        detectionPorts = usbCandidates.isEmpty ? ports : usbCandidates
+        detectionIndex = 0
+        detectionBuffer = ""
+        isDetecting = true
+        testNextDetectionPort()
+    }
+    
+    private func testNextDetectionPort() {
+        detectionTimeout?.cancel()
+        detectionTimeout = nil
+        
+        guard isDetecting else { return }
+        
+        if detectionIndex >= detectionPorts.count {
+            cancelDetection()
+            return
+        }
+        
+        let port = detectionPorts[detectionIndex]
+        detectionIndex += 1
+        
+        if port.isOpen {
+            testNextDetectionPort()
+            return
+        }
+        
+        detectionCurrentPort = port
+        port.baudRate = NSNumber(value: baudRate)
+        port.parity = .none
+        port.numberOfStopBits = 1
+        port.usesRTSCTSFlowControl = false
+        port.usesDTRDSRFlowControl = false
+        port.delegate = self
+        port.open()
+        port.dtr = true
+        port.rts = true
+        
+        let timeout = DispatchWorkItem { [weak self, weak port] in
+            guard let self = self, let port = port else { return }
+            if self.isDetecting && self.selectedPortPath == nil && port == self.detectionCurrentPort {
+                if port.isOpen {
+                    port.close()
+                }
+                self.detectionCurrentPort = nil
+                self.testNextDetectionPort()
             }
+        }
+        detectionTimeout = timeout
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: timeout)
+    }
+    
+    private func cancelDetection() {
+        detectionTimeout?.cancel()
+        detectionTimeout = nil
+        if let port = detectionCurrentPort, port.isOpen, port.path != selectedPortPath {
+            port.close()
+        }
+        detectionCurrentPort = nil
+        detectionPorts = []
+        detectionIndex = 0
+        detectionBuffer = ""
+        isDetecting = false
+    }
+    
+    private func stripControlSequences(_ text: String) -> String {
+        let pattern = "\u{001B}\\][^\u{001B}]*\u{001B}\\\\"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return text }
+        let nsText = text as NSString
+        let range = NSRange(location: 0, length: nsText.length)
+        let cleaned = regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "")
+        return cleaned
+    }
+    
+    func serialPort(_ serialPort: ORSSerialPort, didReceive data: Data) {
+        guard let string = String(data: data, encoding: .utf8) else { return }
+        
+        if isDetecting && selectedPortPath == nil {
+            detectionBuffer.append(string)
+            if detectionBuffer.contains(detectionSignature) {
+                detectionTimeout?.cancel()
+                detectionTimeout = nil
+                isDetecting = false
+                detectionPorts = []
+                detectionIndex = 0
+                detectionBuffer = ""
+                detectionCurrentPort = nil
+                selectedPortPath = serialPort.path
+                isOpen = serialPort.isOpen
+            } else {
+                return
+            }
+        }
+        
+        let cleaned = stripControlSequences(string)
+        guard !cleaned.isEmpty else { return }
+        
+        DispatchQueue.main.async {
+            self.receivedText.append(cleaned)
         }
     }
     
@@ -212,67 +328,6 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
     }
 }
 
-struct SerialMonitorView: View {
-    @StateObject private var controller = SerialPortController()
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Serial Monitor")
-                    .font(.title2)
-                    .bold()
-                Spacer()
-                Picker("Port", selection: $controller.selectedPortPath) {
-                    Text("None").tag(String?.none)
-                    ForEach(ORSSerialPortManager.shared().availablePorts, id: \.path) { port in
-                        Text(port.name ?? port.path).tag(Optional(port.path))
-                    }
-                }
-                .labelsHidden()
-                Picker("Baud", selection: $controller.baudRate) {
-                    ForEach([9600, 19200, 38400, 57600, 115200], id: \.self) { rate in
-                        Text("\(rate)").tag(rate)
-                    }
-                }
-                .frame(width: 100)
-                if controller.isOpen {
-                    Text("Connected")
-                        .foregroundStyle(.green)
-                        .font(.caption)
-                } else {
-                    Text("Disconnected")
-                        .foregroundStyle(.secondary)
-                        .font(.caption)
-                }
-            }
-            
-            HStack(spacing: 10) {
-                Button(controller.isOpen ? "Close Port" : "Open Port") {
-                    if controller.isOpen {
-                        controller.close()
-                    } else {
-                        controller.open()
-                    }
-                }
-                .disabled(controller.selectedPortPath == nil)
-                
-                Button("Clear") {
-                    controller.clear()
-                }
-                
-                Spacer()
-            }
-            
-            TextEditor(text: $controller.receivedText)
-                .font(.system(.body, design: .monospaced))
-                .border(Color.gray.opacity(0.3), width: 1)
-                .frame(minHeight: 300)
-        }
-        .padding()
-        .frame(minWidth: 600, minHeight: 400)
-    }
-}
-
 @main
 struct TrinketierApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -284,11 +339,7 @@ struct TrinketierApp: App {
             RootView()
                 .environmentObject(authViewModel)
                 .environmentObject(aiService)
-        }
-        .windowStyle(.titleBar)
-        
-        WindowGroup("Serial Monitor", id: "serial") {
-            SerialMonitorView()
+                .preferredColorScheme(.light)
         }
         .windowStyle(.titleBar)
     }
@@ -325,7 +376,6 @@ struct RootView: View {
 struct ContentView: View {
     @EnvironmentObject var auth: AuthViewModel
     @EnvironmentObject var aiService: AIService
-    @Environment(\.openWindow) private var openWindow
     
     @State private var codeText: String = "# Your Pico code will appear here…\n"
     @State private var status: String = "Looking for Pico…"
@@ -334,6 +384,7 @@ struct ContentView: View {
     @State private var lastLoadedVolumePath: String? = nil
     @State private var isBusy: Bool = false
     @State private var aiPrompt: String = ""
+    @StateObject private var serialController = SerialPortController()
     
     private let volumeScanTimer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
     
@@ -362,16 +413,15 @@ struct ContentView: View {
             
             Divider()
             
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Describe what you want the Pico to do:")
-                    .font(.subheadline)
-                HStack(alignment: .top, spacing: 8) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Describe what you want the Pico to do:")
+                        .font(.subheadline)
                     TextEditor(text: $aiPrompt)
                         .font(.system(.body, design: .default))
-                        .frame(height: 70)
+                        .frame(height: 120)
                         .border(Color.gray.opacity(0.3), width: 1)
-                    
-                    VStack(spacing: 8) {
+                    HStack(spacing: 8) {
                         Button("Send to AI") {
                             aiService.sendPrompt(prompt: aiPrompt, codeContext: codeText) { newCode in
                                 guard let newCode = newCode, !newCode.isEmpty else { return }
@@ -388,15 +438,55 @@ struct ContentView: View {
                         }
                         .foregroundStyle(.secondary)
                     }
+                    Text(aiService.lastAIStatus)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
-                Text(aiService.lastAIStatus)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                .frame(minWidth: 260)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text("Serial Console")
+                            .font(.subheadline)
+                        Spacer()
+                        Circle()
+                            .frame(width: 8, height: 8)
+                            .foregroundStyle(serialController.isOpen ? .green : .red)
+                        Text(serialController.isOpen ? "Connected" : "Disconnected")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            Text(serialController.receivedText)
+                                .font(.system(.body, design: .monospaced))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .id("SerialBottom")
+                        }
+                        .onChange(of: serialController.receivedText) { _ in
+                            proxy.scrollTo("SerialBottom", anchor: .bottom)
+                        }
+                        .frame(height: 120)
+                        .border(Color.gray.opacity(0.3), width: 1)
+                    }
+                    HStack {
+                        Button("Clear") {
+                            serialController.clear()
+                        }
+                        Spacer()
+                    }
+                }
+                .frame(minWidth: 260)
             }
             
             Divider()
             
             HStack(spacing: 10) {
+                Button("New Code") {
+                    newCodeOnPico()
+                }
+                .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
+                
                 Button("Reload from Pico") {
                     loadCodeFromPico()
                 }
@@ -408,10 +498,6 @@ struct ContentView: View {
                 .keyboardShortcut("s", modifiers: [.command])
                 .disabled(picoVolumeURL == nil || isBusy || aiService.isRunning)
                 
-                Button("Open Serial Monitor") {
-                    openWindow(id: "serial")
-                }
-                
                 Spacer()
                 
                 if isBusy || aiService.isRunning {
@@ -420,10 +506,9 @@ struct ContentView: View {
                 }
             }
             
-            TextEditor(text: $codeText)
-                .font(.system(.body, design: .monospaced))
-                .border(Color.gray.opacity(0.3), width: 1)
+            CodeEditor(text: $codeText)
                 .frame(minHeight: 300)
+                .border(Color.gray.opacity(0.3), width: 1)
             
             HStack {
                 Text(status)
@@ -436,9 +521,11 @@ struct ContentView: View {
         .frame(minWidth: 700, minHeight: 500)
         .onAppear {
             scanForPicoVolume()
+            serialController.autoDetectIfNeeded()
         }
         .onReceive(volumeScanTimer) { _ in
             scanForPicoVolume()
+            serialController.autoDetectIfNeeded()
         }
     }
     
@@ -537,5 +624,11 @@ struct ContentView: View {
         }
         
         isBusy = false
+    }
+    
+    private func newCodeOnPico() {
+        codeText = ""
+        saveCodeToPico()
+        status = "Cleared code on Pico."
     }
 }
