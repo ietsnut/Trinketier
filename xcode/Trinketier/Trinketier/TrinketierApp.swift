@@ -611,10 +611,15 @@ struct ContentView: View {
                                 serialController.clear()
                             }
                             .buttonStyle(RetroButtonStyle(backgroundColor: .retroWhite))
+                            Rectangle()
+                                .fill(Color.retroBlack)
+                                .frame(width: 2)
                             Spacer()
                         }
                         .background(Color.retroWhite)
                         .frame(height: 32)
+                        
+
                     }
                     .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
                 }
@@ -816,6 +821,6 @@ struct ContentView: View {
     private func newCodeOnPico() {
         codeText = ""
         saveCodeToPico()
-        status = "Cleared code on Pico."
+        status = "Reset code on Pico."
     }
 }
