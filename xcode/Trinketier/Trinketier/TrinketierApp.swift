@@ -426,10 +426,17 @@ struct TrinketierApp: App {
                 .environmentObject(aiService)
                 .environmentObject(chatService)
                 .preferredColorScheme(.light)
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+                    chatService.stop()
+                }
         }
         .windowStyle(.hiddenTitleBar)
+        .commands {
+            // ... existing commands if any, or just default
+        }
     }
 }
+
 
 struct RootView: View {
     @EnvironmentObject var auth: AuthViewModel

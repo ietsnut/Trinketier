@@ -21,16 +21,25 @@ class ChatService: ObservableObject {
     @Published var hasUnreadMessages: Bool = false
     @Published var lastError: String? = nil
     
+    private let limit = 100
+    
     private var db = Firestore.firestore()
     private var listenerRegistration: ListenerRegistration?
     private var lastReadTimestamp: Date = Date()
+    
+    private var lastMessageSentTime: Date?
     
     init() {
         listenToMessages()
     }
     
     deinit {
+        stop()
+    }
+    
+    func stop() {
         listenerRegistration?.remove()
+        listenerRegistration = nil
     }
     
     func markAsRead() {
@@ -43,6 +52,7 @@ class ChatService: ObservableObject {
         
         listenerRegistration = db.collection("messages")
             .order(by: "timestamp", descending: false)
+            .limit(toLast: limit) // Optimization: Only load the last 100 messages
             .addSnapshotListener { [weak self] querySnapshot, error in
                 guard let self = self else { return }
                 
@@ -79,6 +89,12 @@ class ChatService: ObservableObject {
             return
         }
         
+        // Rate Limiting: Check if 2 seconds have passed since the last message
+        if let lastSent = lastMessageSentTime, Date().timeIntervalSince(lastSent) < 2.0 {
+            lastError = "Please wait a moment before sending another message."
+            return
+        }
+        
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedText.isEmpty else { return }
         
@@ -90,8 +106,35 @@ class ChatService: ObservableObject {
         
         do {
             try db.collection("messages").addDocument(from: newMessage)
+            lastMessageSentTime = Date()
+            cleanupOldMessages() // Trigger cleanup after sending
         } catch {
             lastError = "Error sending message: \(error.localizedDescription)"
         }
+    }
+    
+    private func cleanupOldMessages() {
+        // Query all messages ordered by timestamp
+        db.collection("messages")
+            .order(by: "timestamp", descending: false)
+            .getDocuments { [weak self] snapshot, error in
+                guard let self = self, let documents = snapshot?.documents else { return }
+                
+                if documents.count > limit {
+                    let messagesToDeleteCount = documents.count - limit
+                    let messagesToDelete = documents.prefix(messagesToDeleteCount)
+                    
+                    let batch = self.db.batch()
+                    for document in messagesToDelete {
+                        batch.deleteDocument(document.reference)
+                    }
+                    
+                    batch.commit { error in
+                        if let error = error {
+                            print("Error cleaning up old messages: \(error)")
+                        }
+                    }
+                }
+            }
     }
 }
