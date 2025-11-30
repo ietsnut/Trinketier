@@ -706,9 +706,7 @@ struct ContentView: View {
                             .frame(width: 2)
                         
                         if isBusy || aiService.isRunning {
-                            ProgressView()
-                                .scaleEffect(0.7)
-                                .padding(8)
+  
                         } else {
                             Text(status)
                                 .font(.system(size: 14, weight: .bold, design: .monospaced))
