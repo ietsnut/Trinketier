@@ -417,12 +417,14 @@ struct TrinketierApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var aiService = AIService()
+    @StateObject private var chatService = ChatService()
     
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(authViewModel)
                 .environmentObject(aiService)
+                .environmentObject(chatService)
                 .preferredColorScheme(.light)
         }
         .windowStyle(.hiddenTitleBar)
@@ -574,6 +576,7 @@ struct WindowToolbar: View {
 struct ContentView: View {
     @EnvironmentObject var auth: AuthViewModel
     @EnvironmentObject var aiService: AIService
+    @EnvironmentObject var chatService: ChatService
     
     @State private var codeText: String = "# Your Pico code will appear here…\n"
     @State private var status: String = "Looking for Pico…"
@@ -583,6 +586,8 @@ struct ContentView: View {
     @State private var isBusy: Bool = false
     @State private var aiPrompt: String = ""
     @State private var serialInput: String = ""
+    @State private var chatInput: String = ""
+    @State private var selectedLeftTab: String = "AI"
     @StateObject private var serialController = SerialPortController()
     @StateObject private var musicPlayer = MusicPlayer()
     
@@ -602,169 +607,19 @@ struct ContentView: View {
             VSplitView {
                 // Top: Split view for AI Assistant and Serial Console
                 HSplitView {
-                    // AI Assistant Panel
-                    VStack(spacing: 0) {
-                        // Header
-                        HStack {
-                            Text("AI Assistant")
-                                .font(.headline)
-                                .fontDesign(.monospaced)
-                            Spacer()
-                            Text(aiService.lastAIStatus)
-                                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(8)
-                        .background(Color.retroBlue.opacity(0.3))
-                        
-                        Rectangle()
-                            .fill(Color.retroBlack)
-                            .frame(height: 2)
-                        
-                        // Content
-                        TextEditor(text: $aiPrompt)
-                            .font(.system(.body, design: .monospaced))
-                            .scrollContentBackground(.hidden)
-                            .padding(8)
-                            .background(Color.retroWhite)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .disabled(aiService.isRunning)
-                        
-                        Rectangle()
-                            .fill(Color.retroBlack)
-                            .frame(height: 2)
-                        
-                        // AI Comment (if present)
-                        if let comment = aiService.aiComment, !comment.isEmpty {
-                            VStack(spacing: 0) {
-                                Text(comment)
-                                    .font(.system(size: 13, design: .monospaced))
-                                    .foregroundStyle(Color.retroBlack.opacity(0.8))
-                                    .padding(8)
-                                    .padding(.leading, 4)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(Color.retroBlue)
-                                
-                                Rectangle()
-                                    .fill(Color.retroBlack)
-                                    .frame(height: 2)
-                            }
-                        }
-                        
-                        // Buttons
-                        HStack(spacing: 0) {
-                            Button("Program") {
-                                aiService.sendPrompt(prompt: aiPrompt, codeContext: codeText) { newCode in
-                                    guard let newCode = newCode, !newCode.isEmpty else { return }
-                                    self.codeText = newCode
-                                    if picoVolumeURL != nil {
-                                        saveCodeToPico()
-                                    }
-                                }
-                            }
-                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroYellow))
-                            .disabled(aiPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
-                            
-                            Rectangle()
-                                .fill(Color.retroBlack)
-                                .frame(width: 2)
-                            
-                            Button("Clear") {
-                                aiPrompt = ""
-                                aiService.aiComment = nil
-                            }
-                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
-                            .disabled(aiPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
-                            
-                            Rectangle()
-                                .fill(Color.retroBlack)
-                                .frame(width: 2)
-                            
-                            Spacer()
-                        }
-                        .frame(height: 33)
-                        .background(Color.retroWhite)
-                    }
-                    .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
+                    TopLeftPanel(
+                        selectedTab: $selectedLeftTab,
+                        aiPrompt: $aiPrompt,
+                        chatInput: $chatInput,
+                        codeText: $codeText,
+                        picoVolumeURL: picoVolumeURL,
+                        onSaveCode: { saveCodeToPico() }
+                    )
                     
-                    // Serial Console Panel
-                    VStack(spacing: 0) {
-                        // Header
-                        HStack {
-                            Text("Serial Console")
-                                .font(.headline)
-                                .fontDesign(.monospaced)
-                            Spacer()
-                            Text(serialController.isOpen ? "Connected" : "Disconnected")
-                                .font(.system(size: 12, weight: .bold, design: .monospaced))
-                                .foregroundStyle(.secondary)
-                                .padding(.trailing, 4)
-                        }
-                        .padding(8)
-                        .background(Color.retroGreen.opacity(0.3))
-                        
-                        Rectangle()
-                            .fill(Color.retroBlack)
-                            .frame(height: 2)
-                        
-                        // Content
-                        ScrollViewReader { proxy in
-                            ScrollView {
-                                Text(serialController.receivedText.trimmingCharacters(in: .newlines))
-                                    .font(.system(.body, design: .monospaced))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(8)
-                                    .textSelection(.enabled)
-                                    .id("SerialBottom")
-                            }
-                            .onChange(of: serialController.receivedText) { _ in
-                                proxy.scrollTo("SerialBottom", anchor: .bottom)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color.retroWhite)
-                        }
-                        
-                        Rectangle()
-                            .fill(Color.retroBlack)
-                            .frame(height: 2)
-                        
-                        // Buttons
-                        HStack(spacing: 0) {
-                            TextField("Send to Pico...", text: $serialInput)
-                                .font(.system(.body, design: .monospaced))
-                                .textFieldStyle(.plain)
-                                .padding(8)
-                                .onSubmit {
-                                    serialController.send(text: serialInput)
-                                    serialInput = ""
-                                }
-                            
-                            Rectangle()
-                                .fill(Color.retroBlack)
-                                .frame(width: 2)
-                            
-                            Button("Send") {
-                                serialController.send(text: serialInput)
-                                serialInput = ""
-                            }
-                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroGreen))
-                            .disabled(serialInput.isEmpty || !serialController.isOpen)
-                            
-                            Rectangle()
-                                .fill(Color.retroBlack)
-                                .frame(width: 2)
-
-                            Button("Clear") {
-                                serialController.clear()
-                            }
-                            .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
-                        }
-                        .background(Color.retroWhite)
-                        .frame(height: 33)
-                        
-                        
-                    }
-                    .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
+                    SerialConsolePanel(
+                        serialController: serialController,
+                        input: $serialInput
+                    )
                 }
                 
                 // Code Editor Panel
@@ -965,5 +820,346 @@ struct ContentView: View {
         codeText = ""
         saveCodeToPico()
         status = "Reset code on Pico."
+    }
+}
+
+struct TopLeftPanel: View {
+    @Binding var selectedTab: String
+    @Binding var aiPrompt: String
+    @Binding var chatInput: String
+    @Binding var codeText: String
+    var picoVolumeURL: URL?
+    var onSaveCode: () -> Void
+    
+    @EnvironmentObject var aiService: AIService
+    @EnvironmentObject var chatService: ChatService
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header (Tabs)
+            HStack(spacing: 0) {
+                
+                VStack(spacing: 0) {
+                    // AI Tab
+                    Button(action: { selectedTab = "AI" }) {
+                        HStack {
+                            Text("LLM Assistant")
+                                .font(.headline)
+                                .fontDesign(.monospaced)
+                            if selectedTab == "AI" {
+                                Spacer()
+                                Text(aiService.lastAIStatus)
+                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.leading, 4)
+                        .padding(8)
+                        .frame(maxWidth: .infinity)
+                        .background(selectedTab == "AI" ? Color.retroWhite : Color.retroBlue.opacity(0.3))
+                    }
+                    .buttonStyle(.plain)
+
+                    Rectangle()
+                        .fill(selectedTab == "Chat" ? Color.retroBlack : Color.retroWhite)
+                        .frame(height: 2)
+                }
+                
+                
+                Rectangle()
+                    .fill(Color.retroBlack)
+                    .frame(width: 2)
+                    .frame(height: 34)
+                    
+                VStack(spacing: 0) {
+                    // Chat Tab
+                    Button(action: { selectedTab = "Chat" }) {
+                        Text("Chat")
+                            .font(.headline)
+                            .fontDesign(.monospaced)
+                            .padding(8)
+                            .frame(maxWidth: .infinity)
+                            .background(selectedTab == "Chat" ? Color.retroWhite : Color.retroBlue.opacity(0.3))
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Rectangle()
+                        .fill(selectedTab == "AI" ? Color.retroBlack : Color.retroWhite)
+                        .frame(height: 2)
+   
+                }
+                
+            }
+            .frame(height: 34)
+            
+            
+            // Content
+            if selectedTab == "AI" {
+                AIView(prompt: $aiPrompt, codeText: $codeText, picoVolumeURL: picoVolumeURL, onSaveCode: onSaveCode)
+            } else {
+                ChatView(input: $chatInput)
+            }
+        }
+        .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
+    }
+}
+
+struct AIView: View {
+    @Binding var prompt: String
+    @Binding var codeText: String
+    var picoVolumeURL: URL?
+    var onSaveCode: () -> Void
+    @EnvironmentObject var aiService: AIService
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            TextEditor(text: $prompt)
+                .font(.system(.body, design: .monospaced))
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .background(Color.retroWhite)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .disabled(aiService.isRunning)
+            
+            Rectangle()
+                .fill(Color.retroBlack)
+                .frame(height: 2)
+            
+            if let comment = aiService.aiComment, !comment.isEmpty {
+                VStack(spacing: 0) {
+                    Text(comment)
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundStyle(Color.retroBlack.opacity(0.8))
+                        .padding(8)
+                        .padding(.leading, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.retroBlue)
+                    
+                    Rectangle()
+                        .fill(Color.retroBlack)
+                        .frame(height: 2)
+                }
+            }
+            
+            HStack(spacing: 0) {
+                Button("Program") {
+                    aiService.sendPrompt(prompt: prompt, codeContext: codeText) { newCode in
+                        guard let newCode = newCode, !newCode.isEmpty else { return }
+                        self.codeText = newCode
+                        if picoVolumeURL != nil {
+                            onSaveCode()
+                        }
+                    }
+                }
+                .buttonStyle(RetroButtonStyle(backgroundColor: .retroYellow))
+                .disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
+                
+                Rectangle()
+                    .fill(Color.retroBlack)
+                    .frame(width: 2)
+                
+                Button("Clear") {
+                    prompt = ""
+                    aiService.aiComment = nil
+                }
+                .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
+                .disabled(prompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || aiService.isRunning)
+                
+                Rectangle()
+                    .fill(Color.retroBlack)
+                    .frame(width: 2)
+                
+                Spacer()
+            }
+            .frame(height: 33)
+            .background(Color.retroWhite)
+        }
+    }
+}
+
+struct ChatView: View {
+    @Binding var input: String
+    @EnvironmentObject var chatService: ChatService
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            MessageListView(messages: chatService.messages)
+            
+            Rectangle()
+                .fill(Color.retroBlack)
+                .frame(height: 2)
+            
+            ChatInputBar(input: $input) { text in
+                chatService.sendMessage(text: text)
+            }
+        }
+    }
+}
+
+struct MessageListView: View {
+    let messages: [ChatMessage]
+    
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(messages) { message in
+                        MessageRow(message: message)
+                    }
+                }
+            }
+            .onChange(of: messages) { _ in
+                if let lastId = messages.last?.id {
+                    proxy.scrollTo(lastId, anchor: .bottom)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.retroWhite)
+    }
+}
+
+struct MessageRow: View {
+    let message: ChatMessage
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading) {
+                HStack(spacing: 0) {
+                    Text(message.sender)
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundStyle(message.isFromCurrentUser() ? Color.retroBlue : Color.retroPink)
+                    Spacer()
+                    Text(message.timestamp, style: .time)
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+                Text(message.text)
+                    .font(.system(size: 13, design: .monospaced))
+                
+            }
+            .padding(8)
+        }
+        
+        .background(Color.retroWhite)
+        .id(message.id)
+        Rectangle()
+            .fill(Color.retroBlack)
+            .frame(height: 2)
+    }
+}
+
+struct ChatInputBar: View {
+    @Binding var input: String
+    var onSend: (String) -> Void
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            TextField("Message...", text: $input)
+                .font(.system(.body, design: .monospaced))
+                .textFieldStyle(.plain)
+                .padding(8)
+                .padding(.leading, 4)
+                .onSubmit {
+                    onSend(input)
+                    input = ""
+                }
+            
+            Rectangle()
+                .fill(Color.retroBlack)
+                .frame(width: 2)
+            
+            Button("Send") {
+                onSend(input)
+                input = ""
+            }
+            .buttonStyle(RetroButtonStyle(backgroundColor: .retroGreen))
+            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+        .frame(height: 33)
+        .background(Color.retroWhite)
+    }
+}
+
+struct SerialConsolePanel: View {
+    @ObservedObject var serialController: SerialPortController
+    @Binding var input: String
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack {
+                Text("Serial Console")
+                    .font(.headline)
+                    .fontDesign(.monospaced)
+                Spacer()
+                Text(serialController.isOpen ? "Connected" : "Disconnected")
+                    .font(.system(size: 12, weight: .bold, design: .monospaced))
+                    .foregroundStyle(.secondary)
+                    .padding(.trailing, 4)
+            }
+            .padding(8)
+            .background(Color.retroGreen.opacity(0.3))
+            
+            Rectangle()
+                .fill(Color.retroBlack)
+                .frame(height: 2)
+            
+            // Content
+            ScrollViewReader { proxy in
+                ScrollView {
+                    Text(serialController.receivedText.trimmingCharacters(in: .newlines))
+                        .font(.system(.body, design: .monospaced))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(8)
+                        .textSelection(.enabled)
+                        .id("SerialBottom")
+                }
+                .onChange(of: serialController.receivedText) { _ in
+                    proxy.scrollTo("SerialBottom", anchor: .bottom)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.retroWhite)
+            }
+            
+            Rectangle()
+                .fill(Color.retroBlack)
+                .frame(height: 2)
+            
+            // Buttons
+            HStack(spacing: 0) {
+                TextField("Send to Pico...", text: $input)
+                    .font(.system(.body, design: .monospaced))
+                    .textFieldStyle(.plain)
+                    .padding(8)
+                    .onSubmit {
+                        serialController.send(text: input)
+                        input = ""
+                    }
+                
+                Rectangle()
+                    .fill(Color.retroBlack)
+                    .frame(width: 2)
+                
+                Button("Send") {
+                    serialController.send(text: input)
+                    input = ""
+                }
+                .buttonStyle(RetroButtonStyle(backgroundColor: .retroGreen))
+                .disabled(input.isEmpty || !serialController.isOpen)
+                
+                Rectangle()
+                    .fill(Color.retroBlack)
+                    .frame(width: 2)
+
+                Button("Clear") {
+                    serialController.clear()
+                }
+                .buttonStyle(RetroButtonStyle(backgroundColor: .retroPink))
+            }
+            .background(Color.retroWhite)
+            .frame(height: 33)
+        }
+        .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
     }
 }
