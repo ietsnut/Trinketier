@@ -625,9 +625,22 @@ struct ContentView: View {
                 // Code Editor Panel
                 VStack(spacing: 0) {
                     // Content
-                    CodeEditor(text: $codeText)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .disabled(aiService.isRunning)
+                    ZStack {
+                        CodeEditor(text: $codeText)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .disabled(aiService.isRunning)
+                        
+                        if aiService.isRunning || isBusy {
+                            Color.retroYellow
+                                .ignoresSafeArea()
+                            
+                            VStack(spacing: 16) {
+                                ProgressView()
+                                    .controlSize(.large)
+                                    .tint(.retroBlack)
+                            }
+                        }
+                    }
                     
                     Rectangle()
                         .fill(Color.retroBlack)
