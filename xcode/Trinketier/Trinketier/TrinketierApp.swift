@@ -112,7 +112,7 @@ class AIService: ObservableObject {
     
     func sendPrompt(prompt: String, codeContext: String, completion: @escaping (String?) -> Void) {
         isRunning = true
-        lastAIStatus = "Talking to Gemini…"
+        lastAIStatus = "Prompting LLM…"
         
         Task { @MainActor in
             do {
@@ -153,11 +153,11 @@ class AIService: ObservableObject {
                         let code = aiResponse.code.trimmingCharacters(in: .whitespacesAndNewlines)
                         
                         if code.isEmpty {
-                            self.lastAIStatus = "AI responded with no usable code."
+                            self.lastAIStatus = "LLM responded with no usable code."
                             self.isRunning = false
                             completion(nil)
                         } else {
-                            self.lastAIStatus = "AI updated the code."
+                            self.lastAIStatus = "LLM updated the code."
                             self.isRunning = false
                             completion(code)
                         }
@@ -173,16 +173,16 @@ class AIService: ObservableObject {
                 let generated = stripCodeFences(from: trimmedResponse)
                 
                 if generated.isEmpty {
-                    self.lastAIStatus = "AI responded with no usable code."
+                    self.lastAIStatus = "LLM responded with no usable code."
                     self.isRunning = false
                     completion(nil)
                 } else {
-                    self.lastAIStatus = "AI updated the code."
+                    self.lastAIStatus = "LLM updated the code."
                     self.isRunning = false
                     completion(generated)
                 }
             } catch {
-                self.lastAIStatus = "AI error: \(error.localizedDescription)"
+                self.lastAIStatus = "LLM error: \(error.localizedDescription)"
                 self.isRunning = false
                 completion(nil)
             }
