@@ -426,9 +426,6 @@ struct TrinketierApp: App {
                 .environmentObject(aiService)
                 .environmentObject(chatService)
                 .preferredColorScheme(.light)
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-                    chatService.stop()
-                }
         }
         .windowStyle(.hiddenTitleBar)
         .commands {
@@ -638,7 +635,7 @@ struct ContentView: View {
                             .disabled(aiService.isRunning)
                         
                         if aiService.isRunning || isBusy {
-                            Color.retroYellow
+                            Color.clear
                                 .ignoresSafeArea()
                             
                             VStack(spacing: 16) {
