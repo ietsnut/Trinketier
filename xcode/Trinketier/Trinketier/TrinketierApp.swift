@@ -873,13 +873,24 @@ struct TopLeftPanel: View {
                     
                 VStack(spacing: 0) {
                     // Chat Tab
-                    Button(action: { selectedTab = "Chat" }) {
+                    Button(action: {
+                        selectedTab = "Chat"
+                        chatService.markAsRead()
+                    }) {
                         Text("Chat")
                             .font(.headline)
                             .fontDesign(.monospaced)
                             .padding(8)
                             .frame(maxWidth: .infinity)
                             .background(selectedTab == "Chat" ? Color.retroWhite : Color.retroBlue.opacity(0.3))
+                            .overlay(alignment: .topTrailing) {
+                                if chatService.hasUnreadMessages {
+                                    Circle()
+                                        .fill(Color.retroPink)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: -4, y: 4)
+                                }
+                            }
                     }
                     .buttonStyle(.plain)
                     
@@ -1004,11 +1015,11 @@ struct MessageListView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(messages) { message in
-                        MessageRow(message: message)
+                        MessageRow(message: message, islast: messages.last?.id == message.id)
                     }
                 }
             }
-            .onChange(of: messages) { _ in
+            .onChange(of: messages) { messages in
                 if let lastId = messages.last?.id {
                     proxy.scrollTo(lastId, anchor: .bottom)
                 }
@@ -1020,7 +1031,9 @@ struct MessageListView: View {
 }
 
 struct MessageRow: View {
+    
     let message: ChatMessage
+    let islast: Bool
     
     var body: some View {
         VStack(spacing: 0) {
@@ -1038,14 +1051,16 @@ struct MessageRow: View {
                     .font(.system(size: 13, design: .monospaced))
                 
             }
+            .padding(.leading, 4)
             .padding(8)
         }
         
         .background(Color.retroWhite)
-        .id(message.id)
+        
         Rectangle()
-            .fill(Color.retroBlack)
+            .fill(islast ? Color.retroWhite : Color.retroBlack)
             .frame(height: 2)
+            .id(message.id)
     }
 }
 

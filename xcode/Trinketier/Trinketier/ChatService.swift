@@ -18,10 +18,12 @@ struct ChatMessage: Identifiable, Codable, Equatable {
 
 class ChatService: ObservableObject {
     @Published var messages: [ChatMessage] = []
+    @Published var hasUnreadMessages: Bool = false
     @Published var lastError: String? = nil
     
     private var db = Firestore.firestore()
     private var listenerRegistration: ListenerRegistration?
+    private var lastReadTimestamp: Date = Date()
     
     init() {
         listenToMessages()
@@ -29,6 +31,11 @@ class ChatService: ObservableObject {
     
     deinit {
         listenerRegistration?.remove()
+    }
+    
+    func markAsRead() {
+        hasUnreadMessages = false
+        lastReadTimestamp = Date()
     }
     
     func listenToMessages() {
@@ -49,9 +56,20 @@ class ChatService: ObservableObject {
                     return
                 }
                 
-                self.messages = documents.compactMap { document -> ChatMessage? in
+                let newMessages = documents.compactMap { document -> ChatMessage? in
                     try? document.data(as: ChatMessage.self)
                 }
+                
+                // Check for unread messages
+                // We only care about messages that are NEWER than our last read timestamp
+                // AND are NOT from the current user
+                if let lastMsg = newMessages.last,
+                   !lastMsg.isFromCurrentUser(),
+                   lastMsg.timestamp > self.lastReadTimestamp {
+                    self.hasUnreadMessages = true
+                }
+                
+                self.messages = newMessages
             }
     }
     
