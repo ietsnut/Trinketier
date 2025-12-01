@@ -4,14 +4,6 @@ import FirebaseCore
 import FirebaseAILogic
 import ORSSerial
 
-
-class AppDelegate: NSObject, NSApplicationDelegate {
-    func applicationDidFinishLaunching(_ notification: Notification) {
-    }
-}
-
-
-
 struct AIResponse: Codable {
     let code: String
     let comment: String?
@@ -354,7 +346,7 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
 
 @main
 struct TrinketierApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
     @StateObject private var aiService = AIService()
     
     var body: some Scene {
@@ -364,9 +356,6 @@ struct TrinketierApp: App {
                 .preferredColorScheme(.light)
         }
         .windowStyle(.hiddenTitleBar)
-        .commands {
-            // ... existing commands if any, or just default
-        }
     }
 }
 

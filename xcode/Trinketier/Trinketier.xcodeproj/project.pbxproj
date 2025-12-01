@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A23EC5572EDA8E510051D0BC /* FirebaseAI in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC5562EDA8E510051D0BC /* FirebaseAI */; };
 		A23EC5592EDA8E510051D0BC /* FirebaseAILogic in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC5582EDA8E510051D0BC /* FirebaseAILogic */; };
 		A23EC55B2EDA8E510051D0BC /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC55A2EDA8E510051D0BC /* FirebaseAppCheck */; };
 		A23EC55F2EDA8E510051D0BC /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A23EC55E2EDA8E510051D0BC /* FirebaseCore */; };
@@ -48,7 +47,6 @@
 				A23EC6E82EDA98E90051D0BC /* ORSSerial in Frameworks */,
 				A23EC55F2EDA8E510051D0BC /* FirebaseCore in Frameworks */,
 				A23EC55B2EDA8E510051D0BC /* FirebaseAppCheck in Frameworks */,
-				A23EC5572EDA8E510051D0BC /* FirebaseAI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,7 +89,6 @@
 			);
 			name = Trinketier;
 			packageProductDependencies = (
-				A23EC5562EDA8E510051D0BC /* FirebaseAI */,
 				A23EC5582EDA8E510051D0BC /* FirebaseAILogic */,
 				A23EC55A2EDA8E510051D0BC /* FirebaseAppCheck */,
 				A23EC55E2EDA8E510051D0BC /* FirebaseCore */,
@@ -449,11 +446,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A23EC5562EDA8E510051D0BC /* FirebaseAI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAI;
-		};
 		A23EC5582EDA8E510051D0BC /* FirebaseAILogic */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A23EC5552EDA8E510051D0BC /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
