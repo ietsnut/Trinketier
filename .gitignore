@@ -164,3 +164,4 @@ Thumbs.db
 **/resource-config.json
 xcode/Trinketier/Trinketier.xcodeproj/project.xcworkspace/xcuserdata/marijnbrussel.xcuserdatad/UserInterfaceState.xcuserstate
 /xcode/Trinketier/Trinketier.xcodeproj/project.xcworkspace/xcuserdata/marijnbrussel.xcuserdatad
+*.xcuserstate
