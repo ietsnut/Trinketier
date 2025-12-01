@@ -1,8 +1,6 @@
 import SwiftUI
 import Combine
 import FirebaseCore
-import FirebaseAuth
-import FirebaseAppCheck
 import FirebaseAILogic
 import ORSSerial
 
@@ -12,66 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
-class AuthViewModel: ObservableObject {
-    @Published var isAuthenticated: Bool = false
-    @Published var userDescription: String = "Not signed in"
-    
-    private var authHandle: AuthStateDidChangeListenerHandle?
-    
-    init() {
-        FirebaseApp.configure()
-        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
-        authHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
-            guard let self = self else { return }
-            if let user = user {
-                self.isAuthenticated = true
-                if let email = user.email, !email.isEmpty {
-                    self.userDescription = "Signed in as \(email)"
-                } else if user.isAnonymous {
-                    self.userDescription = "Signed in anonymously"
-                } else {
-                    self.userDescription = "Signed in (uid: \(user.uid))"
-                }
-            } else {
-                self.isAuthenticated = false
-                self.userDescription = "Not signed in"
-            }
-        }
-    }
-    
-    deinit {
-        if let handle = authHandle {
-            Auth.auth().removeStateDidChangeListener(handle)
-        }
-    }
-    
-    func start() {
-        if Auth.auth().currentUser == nil {
-            signInAnonymously()
-        }
-    }
-    
-    func signInAnonymously() {
-        Auth.auth().signInAnonymously { [weak self] result, error in
-            if let error = error {
-                self?.userDescription = "Anon sign-in failed: \(error.localizedDescription)"
-                return
-            }
-            if let user = result?.user {
-                self?.userDescription = "Signed in anonymously (uid: \(user.uid))"
-                self?.isAuthenticated = true
-            }
-        }
-    }
-    
-    func signOut() {
-        do {
-            try Auth.auth().signOut()
-        } catch {
-            userDescription = "Sign out failed: \(error.localizedDescription)"
-        }
-    }
-}
+
 
 struct AIResponse: Codable {
     let code: String
@@ -86,6 +25,7 @@ class AIService: ObservableObject {
     private let model: TemplateGenerativeModel
     
     init() {
+        FirebaseApp.configure()
         let ai = FirebaseAI.firebaseAI(backend: .googleAI())
         self.model = ai.templateGenerativeModel()
     }
@@ -415,16 +355,12 @@ class SerialPortController: NSObject, ObservableObject, ORSSerialPortDelegate {
 @main
 struct TrinketierApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var authViewModel = AuthViewModel()
     @StateObject private var aiService = AIService()
-    @StateObject private var chatService = ChatService()
     
     var body: some Scene {
         WindowGroup {
             RootView()
-                .environmentObject(authViewModel)
                 .environmentObject(aiService)
-                .environmentObject(chatService)
                 .preferredColorScheme(.light)
         }
         .windowStyle(.hiddenTitleBar)
@@ -436,42 +372,13 @@ struct TrinketierApp: App {
 
 
 struct RootView: View {
-    @EnvironmentObject var auth: AuthViewModel
     
     var body: some View {
         ZStack {
             
             WindowAccessor() // Enable window dragging
             
-            Group {
-                if auth.isAuthenticated {
-                    ContentView()
-                } else {
-                    VStack(spacing: 24) {
-                        Text("Trinketier")
-                            .font(.system(size: 48, weight: .black, design: .monospaced))
-                            .foregroundStyle(Color.retroBlack)
-                        
-                        Text("Connect to Workshop")
-                            .font(.title2)
-                            .fontDesign(.monospaced)
-                            .foregroundStyle(Color.retroBlack)
-                        
-                        Text(auth.userDescription)
-                            .font(.footnote)
-                            .fontDesign(.monospaced)
-                            .foregroundStyle(Color.retroBlack.opacity(0.7))
-                        
-                        Button("Sign in anonymously") {
-                            auth.signInAnonymously()
-                        }
-                        .buttonStyle(RetroButtonStyle(backgroundColor: .retroYellow))
-                    }
-                    .padding(40)
-                    .retroCard(backgroundColor: .retroWhite)
-                    .frame(maxWidth: 500)
-                }
-            }
+            ContentView()
         }
         .background(Color.retroBeige)
         .overlay(
@@ -479,14 +386,10 @@ struct RootView: View {
                 .strokeBorder(Color.retroBlack, lineWidth: 4)
                 .ignoresSafeArea()
         )
-        .onAppear {
-            auth.start()
-        }
     }
 }
 
 struct WindowToolbar: View {
-    @ObservedObject var auth: AuthViewModel
     @ObservedObject var serialController: SerialPortController
     var picoVolumeURL: URL?
     var lastDetectedVolumeName: String?
@@ -532,23 +435,6 @@ struct WindowToolbar: View {
                     .fill(Color.retroBlack)
                     .frame(width: 2)
                 
-                HStack(spacing: 8) {
-                    Circle()
-                        .strokeBorder(Color.retroBlack, lineWidth: 2)
-                        .background(Circle().fill(auth.isAuthenticated ? Color.retroGreen : Color.retroPink))
-                        .frame(width: 12, height: 12)
-                    
-                    Text(auth.isAuthenticated ? "Logged In" : "Guest")
-                        .font(.system(size: 14, weight: .bold, design: .monospaced))
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .frame(maxHeight: .infinity)
-                
-                
-                Rectangle()
-                    .fill(Color.retroBlack)
-                    .frame(width: 2)
                 // Pico Status
                 HStack(spacing: 8) {
                     Circle()
@@ -578,9 +464,7 @@ struct WindowToolbar: View {
 }
 
 struct ContentView: View {
-    @EnvironmentObject var auth: AuthViewModel
     @EnvironmentObject var aiService: AIService
-    @EnvironmentObject var chatService: ChatService
     
     @State private var codeText: String = "# Your Pico code will appear here…\n"
     @State private var status: String = "Looking for Pico…"
@@ -590,8 +474,6 @@ struct ContentView: View {
     @State private var isBusy: Bool = false
     @State private var aiPrompt: String = ""
     @State private var serialInput: String = ""
-    @State private var chatInput: String = ""
-    @State private var selectedLeftTab: String = "AI"
     @StateObject private var serialController = SerialPortController()
     @StateObject private var musicPlayer = MusicPlayer()
     
@@ -601,7 +483,6 @@ struct ContentView: View {
         VStack(spacing: 0) {
             // Toolbar
             WindowToolbar(
-                auth: auth,
                 serialController: serialController,
                 picoVolumeURL: picoVolumeURL,
                 lastDetectedVolumeName: lastDetectedVolumeName,
@@ -612,9 +493,7 @@ struct ContentView: View {
                 // Top: Split view for AI Assistant and Serial Console
                 HSplitView {
                     TopLeftPanel(
-                        selectedTab: $selectedLeftTab,
                         aiPrompt: $aiPrompt,
-                        chatInput: $chatInput,
                         codeText: $codeText,
                         picoVolumeURL: picoVolumeURL,
                         onSaveCode: { saveCodeToPico() }
@@ -839,92 +718,41 @@ struct ContentView: View {
 }
 
 struct TopLeftPanel: View {
-    @Binding var selectedTab: String
     @Binding var aiPrompt: String
-    @Binding var chatInput: String
     @Binding var codeText: String
     var picoVolumeURL: URL?
     var onSaveCode: () -> Void
     
     @EnvironmentObject var aiService: AIService
-    @EnvironmentObject var chatService: ChatService
     
     var body: some View {
         VStack(spacing: 0) {
-            // Header (Tabs)
+            // Header
             HStack(spacing: 0) {
-                
-                VStack(spacing: 0) {
-                    // AI Tab
-                    Button(action: { selectedTab = "AI" }) {
-                        HStack {
-                            Text("LLM Assistant")
-                                .font(.headline)
-                                .fontDesign(.monospaced)
-                            if selectedTab == "AI" {
-                                Spacer()
-                                Text(aiService.lastAIStatus)
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.leading, 4)
-                        .padding(8)
-                        .frame(maxWidth: .infinity)
-                        .background(selectedTab == "AI" ? Color.retroWhite : Color.retroBlue.opacity(0.3))
-                    }
-                    .buttonStyle(.plain)
-
-                    Rectangle()
-                        .fill(selectedTab == "Chat" ? Color.retroBlack : Color.retroWhite)
-                        .frame(height: 2)
+                HStack {
+                    Text("LLM Assistant")
+                        .font(.headline)
+                        .fontDesign(.monospaced)
+                    Spacer()
+                    Text(aiService.lastAIStatus)
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundStyle(.secondary)
                 }
-                
-                
-                Rectangle()
-                    .fill(Color.retroBlack)
-                    .frame(width: 2)
-                    .frame(height: 34)
-                    
-                VStack(spacing: 0) {
-                    // Chat Tab
-                    Button(action: {
-                        selectedTab = "Chat"
-                        chatService.markAsRead()
-                    }) {
-                        Text("Chat")
-                            .font(.headline)
-                            .fontDesign(.monospaced)
-                            .padding(8)
-                            .frame(maxWidth: .infinity)
-                            .background(selectedTab == "Chat" ? Color.retroWhite : Color.retroBlue.opacity(0.3))
-                            .overlay(alignment: .topTrailing) {
-                                if chatService.hasUnreadMessages {
-                                    Circle()
-                                        .fill(Color.retroPink)
-                                        .frame(width: 8, height: 8)
-                                        .offset(x: -4, y: 4)
-                                }
-                            }
-                    }
-                    .buttonStyle(.plain)
-                    
-                    Rectangle()
-                        .fill(selectedTab == "AI" ? Color.retroBlack : Color.retroWhite)
-                        .frame(height: 2)
-   
-                }
-                
+                .padding(.leading, 4)
+                .padding(8)
+                .frame(maxWidth: .infinity)
+                .background(Color.retroWhite)
             }
             .frame(height: 34)
-            
+            .overlay(
+                Rectangle()
+                    .frame(height: 2)
+                    .foregroundStyle(Color.retroBlack),
+                alignment: .bottom
+            )
             
             // Content
-            if selectedTab == "AI" {
-                AIView(prompt: $aiPrompt, codeText: $codeText, picoVolumeURL: picoVolumeURL, onSaveCode: onSaveCode)
-            } else {
-                ChatView(input: $chatInput)
-            }
+            AIView(prompt: $aiPrompt, codeText: $codeText, picoVolumeURL: picoVolumeURL, onSaveCode: onSaveCode)
         }
         .overlay(Rectangle().stroke(Color.retroBlack, lineWidth: 2))
     }
@@ -1003,113 +831,7 @@ struct AIView: View {
     }
 }
 
-struct ChatView: View {
-    @Binding var input: String
-    @EnvironmentObject var chatService: ChatService
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            MessageListView(messages: chatService.messages)
-            
-            Rectangle()
-                .fill(Color.retroBlack)
-                .frame(height: 2)
-            
-            ChatInputBar(input: $input) { text in
-                chatService.sendMessage(text: text)
-            }
-        }
-    }
-}
 
-struct MessageListView: View {
-    let messages: [ChatMessage]
-    
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(messages) { message in
-                        MessageRow(message: message, islast: messages.last?.id == message.id)
-                    }
-                }
-            }
-            .onChange(of: messages) { messages in
-                if let lastId = messages.last?.id {
-                    proxy.scrollTo(lastId, anchor: .bottom)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.retroWhite)
-    }
-}
-
-struct MessageRow: View {
-    
-    let message: ChatMessage
-    let islast: Bool
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            VStack(alignment: .leading) {
-                HStack(spacing: 0) {
-                    Text(message.sender)
-                        .font(.system(size: 13, design: .monospaced))
-                        .foregroundStyle(message.isFromCurrentUser() ? Color.retroBlue : Color.retroPink)
-                    Spacer()
-                    Text(message.timestamp, style: .time)
-                        .font(.system(size: 13, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-                Text(message.text)
-                    .font(.system(size: 13, design: .monospaced))
-                
-            }
-            .padding(.leading, 4)
-            .padding(8)
-        }
-        
-        .background(Color.retroWhite)
-        
-        Rectangle()
-            .fill(islast ? Color.retroWhite : Color.retroBlack)
-            .frame(height: 2)
-            .id(message.id)
-    }
-}
-
-struct ChatInputBar: View {
-    @Binding var input: String
-    var onSend: (String) -> Void
-    
-    var body: some View {
-        HStack(spacing: 0) {
-            TextField("Message...", text: $input)
-                .font(.system(.body, design: .monospaced))
-                .textFieldStyle(.plain)
-                .padding(8)
-                .padding(.leading, 4)
-                .onSubmit {
-                    onSend(input)
-                    input = ""
-                }
-            
-            Rectangle()
-                .fill(Color.retroBlack)
-                .frame(width: 2)
-            
-            Button("Send") {
-                onSend(input)
-                input = ""
-            }
-            .buttonStyle(RetroButtonStyle(backgroundColor: .retroGreen))
-            .disabled(input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-        }
-        .frame(height: 33)
-        .background(Color.retroWhite)
-    }
-}
 
 struct SerialConsolePanel: View {
     @ObservedObject var serialController: SerialPortController
